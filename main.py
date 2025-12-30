@@ -33,6 +33,10 @@ with st.sidebar:
     else:
         st.write("No history in this session.")
 
+    # Personalized Signature at the bottom
+    st.divider()
+    st.info("🎨 **Built by Vicky** | Free for friends")
+
 # 3. Styling
 st.markdown("""
     <style>
@@ -93,5 +97,5 @@ if st.button("Generate Professional Email ✨"):
                 whatsapp_text = urllib.parse.quote(result)
                 st.markdown(f'<a href="https://wa.me/?text={whatsapp_text}" target="_blank" class="wa-button">Share to WhatsApp 📱</a>', unsafe_allow_html=True)
                 st.balloons()
-                st.rerun() # Refresh to show in sidebar history
+                st.rerun() 
             except Exception as e: st.error(f"Error: {e}")
