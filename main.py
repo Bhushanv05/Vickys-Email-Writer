@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import urllib.parse
 from groq import Groq
 
 # 1. Page Configuration
@@ -9,38 +10,11 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. Initialize History in Session State
-# This ensures history stays available while the tab is open
+# 2. Initialize History in Session State (Remembers last 3 emails)
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# 3. Sidebar with Help Guide and History
-with st.sidebar:
-    st.title("📖 App Menu")
-    st.markdown("""
-    **How to Use:**
-    1. Paste your rough notes.
-    2. Choose tone and length.
-    3. Click Generate!
-    """)
-    
-    st.divider()
-    
-    # History Section
-    st.subheader("📜 Recent History")
-    if st.session_state.history:
-        for i, item in enumerate(st.session_state.history):
-            with st.expander(f"Email {i+1}"):
-                st.text(item)
-                if st.button(f"Copy Email {i+1}"):
-                    st.write("Selected! Copy text above.")
-    else:
-        st.write("No history in this session yet.")
-    
-    st.divider()
-    st.info("Built by Vicky | Free for friends")
-
-# 4. Fixed CSS for Green Theme
+# 3. Fixed CSS for Green Theme
 st.markdown("""
     <style>
     .stApp {
@@ -57,12 +31,48 @@ st.markdown("""
         width: 100%;
         height: 3em;
     }
+    /* Specific styling for the WhatsApp button */
+    .wa-button {
+        background-color: #25D366 !important;
+        color: white !important;
+        text-decoration: none;
+        padding: 10px;
+        border-radius: 10px;
+        display: block;
+        text-align: center;
+        font-weight: bold;
+        margin-top: 10px;
+    }
     </style>
-    """, unsafe_allow_html=True) # Fixed parameter
+    """, unsafe_allow_html=True) # Corrected parameter
 
-# 5. App Header
+# 4. Sidebar: How to Use & Recent History
+with st.sidebar:
+    st.title("📖 App Menu")
+    st.markdown("""
+    **How to Use:**
+    1. Paste your rough notes.
+    2. Choose tone and length.
+    3. Click Generate!
+    4. Share via WhatsApp or Download.
+    """)
+    
+    st.divider()
+    
+    st.subheader("📜 Recent History")
+    if st.session_state.history:
+        for i, item in enumerate(st.session_state.history):
+            with st.expander(f"Email {i+1}"):
+                st.text(item)
+    else:
+        st.write("No history in this session yet.")
+    
+    st.divider()
+    st.info("Built by Vicky | Free for friends")
+
+# 5. App Main Header
 st.title("✉️ Vicky_Email_writer")
-st.write("Professional emails made easy.")
+st.write("Helping you write professional emails in seconds.")
 
 # 6. Initialize Groq Client
 try:
@@ -97,13 +107,21 @@ if st.button("Generate Professional Email ✨"):
                 if len(st.session_state.history) > 3:
                     st.session_state.history.pop()
                 
+                # Display Results
                 st.markdown("### 📄 Result:")
                 st.info(result)
                 
+                # Action Buttons (Download & WhatsApp)
                 st.download_button("Download Email 💾", result, file_name="email.txt")
                 
-                # Force refresh sidebar to show new history
-                st.rerun() 
+                # WhatsApp Link Generation
+                whatsapp_text = urllib.parse.quote(result)
+                whatsapp_url = f"https://wa.me/?text={whatsapp_text}"
+                
+                st.markdown(f'<a href="{whatsapp_url}" target="_blank" class="wa-button">Share to WhatsApp 📱</a>', unsafe_allow_html=True)
+                
+                # Refresh sidebar to update history
+                st.rerun()
                 
             except Exception as e:
                 st.error(f"AI Error: {e}")
