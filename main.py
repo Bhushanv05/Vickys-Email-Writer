@@ -23,7 +23,7 @@ if 'first_load' not in st.session_state:
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# 4. Fixed CSS for Green Theme
+# 4. Styling: Green Theme & WhatsApp Button
 st.markdown("""
     <style>
     .stApp { background-color: #f1f8e9; }
@@ -48,7 +48,7 @@ st.markdown("""
         line-height: 2.5em;
     }
     </style>
-    """, unsafe_allow_html=True) # Parameter fixed
+    """, unsafe_allow_html=True)
 
 # 5. Sidebar: QR Code, History, and Feedback
 with st.sidebar:
@@ -135,7 +135,13 @@ if st.button("Generate Professional Email ✨"):
     if draft:
         with st.spinner("Vicky is writing..."):
             try:
-                prompt = f"Rough draft: '{draft}'. Rewrite as a professional email in {target_lang}. Tone: {tone}, Length: {length}."
+                # Instruction to translate Marathi to English (or vice versa) if needed
+                prompt = f"""
+                Draft: '{draft}'. 
+                Convert this into a professional email in {target_lang}. 
+                Tone: {tone}, Length: {length}.
+                Ensure the Marathi is natural and professional if selected.
+                """
                 response = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[{"role": "user", "content": prompt}]
@@ -154,10 +160,11 @@ if st.button("Generate Professional Email ✨"):
                 st.download_button("Download 💾", result, file_name="email.txt")
                 
                 whatsapp_text = urllib.parse.quote(result)
-                st.markdown(f'<a href="https://wa.me/?text={whatsapp_text}" target="_blank" class="wa-button">Share to WhatsApp 📱</a>', unsafe_allow_html=True)
+                whatsapp_url = f"https://wa.me/?text={whatsapp_text}"
+                st.markdown(f'<a href="{whatsapp_url}" target="_blank" class="wa-button">Share to WhatsApp 📱</a>', unsafe_allow_html=True)
                 
                 st.balloons()
-                st.rerun() # Refresh history immediately
+                st.rerun()
             except Exception as e:
                 st.error(f"AI Error: {e}")
     else:
