@@ -9,7 +9,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. Simplified CSS for the "Green" look (Fixed for Streamlit)
+# 2. Simplified CSS (Corrected parameter name)
 st.markdown("""
     <style>
     .stApp {
@@ -21,9 +21,11 @@ st.markdown("""
     .stButton>button {
         background-color: #2e7d32 !important;
         color: white !important;
+        border-radius: 10px;
+        width: 100%;
     }
     </style>
-    """, unsafe_content_allowed=True)
+    """, unsafe_allow_html=True)
 
 # 3. App Header
 st.title("✉️ Vicky_Email_writer")
@@ -31,7 +33,7 @@ st.write("Professional emails made easy.")
 
 # 4. Initialize Groq Client
 try:
-    # This looks for the secret in Streamlit Cloud Settings
+    # Looks for secret in Streamlit Cloud Settings
     api_key = st.secrets["GROQ_API_KEY"] if "GROQ_API_KEY" in st.secrets else os.environ.get("GROQ_API_KEY")
     client = Groq(api_key=api_key)
 except Exception:
