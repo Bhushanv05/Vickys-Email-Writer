@@ -5,6 +5,7 @@ import qrcode
 from PIL import Image
 from io import BytesIO
 from groq import Groq
+from streamlit_mic_recorder import mic_recorder
 
 # 1. Page Configuration
 st.set_page_config(
@@ -13,8 +14,10 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. Welcome Message (Shows on every load)
-st.toast("Welcome to Vicky's Email Writer! ✉️", icon="👋")
+# 2. Welcome Message
+if 'first_load' not in st.session_state:
+    st.toast("Welcome to Vicky's Email Writer! ✉️", icon="👋")
+    st.session_state.first_load = True
 
 # 3. Initialize History
 if 'history' not in st.session_state:
@@ -23,12 +26,11 @@ if 'history' not in st.session_state:
 # 4. Sidebar: Menu, QR Code, and History
 with st.sidebar:
     st.title("📖 App Menu")
-    st.markdown("Easily polish your rough notes into professional emails.")
+    st.markdown("Polish your thoughts into professional emails.")
     
     # QR Code Section
     st.divider()
     st.subheader("📲 Share App")
-    # Replace with your actual Streamlit URL
     app_url = "https://vicky-email-writer.streamlit.app" 
     qr = qrcode.make(app_url)
     buf = BytesIO()
@@ -47,7 +49,7 @@ with st.sidebar:
     else:
         st.write("No history yet.")
 
-# 5. Fixed CSS for Green Theme
+# 5. Styling
 st.markdown("""
     <style>
     .stApp { background-color: #f1f8e9; }
@@ -57,7 +59,6 @@ st.markdown("""
         color: white !important;
         border-radius: 10px;
         width: 100%;
-        height: 3em;
     }
     .wa-button {
         background-color: #25D366 !important;
@@ -69,12 +70,11 @@ st.markdown("""
         text-align: center;
         font-weight: bold;
         margin-top: 10px;
-        line-height: 2.5em;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 6. Initialize Groq Client
+# 6. Initialize Groq
 try:
     api_key = st.secrets["GROQ_API_KEY"] if "GROQ_API_KEY" in st.secrets else os.environ.get("GROQ_API_KEY")
     client = Groq(api_key=api_key)
@@ -84,7 +84,37 @@ except Exception:
 
 # 7. Main UI
 st.title("✉️ Vicky_Email_writer")
-draft = st.text_area("Step 1: Paste your rough message here:", height=150)
+
+# VOICE INPUT SECTION
+st.write("### Step 1: Speak or Type your message")
+audio_input = mic_recorder(
+    start_prompt="🎤 Click to Speak Draft",
+    stop_prompt="🛑 Stop Recording",
+    key='recorder'
+)
+
+# Logic to handle transcribed voice
+voice_text = ""
+if audio_input:
+    # Use Groq's Whisper model for high-quality transcription
+    with st.spinner("Transcribing your voice..."):
+        try:
+            # Save audio to temp file for Groq Whisper API
+            with open("temp_audio.wav", "wb") as f:
+                f.write(audio_input['bytes'])
+            
+            with open("temp_audio.wav", "rb") as audio_file:
+                transcription = client.audio.transcriptions.create(
+                    file=("temp_audio.wav", audio_file.read()),
+                    model="whisper-large-v3",
+                )
+                voice_text = transcription.text
+        except Exception as e:
+            st.error(f"Transcription Error: {e}")
+
+# TEXT AREA
+draft = st.text_area("Your rough draft:", value=voice_text, height=150, placeholder="Type here or use the mic above...")
+
 col1, col2 = st.columns(2)
 with col1:
     tone = st.selectbox("Tone", ["Formal", "Friendly", "Urgent"])
@@ -112,9 +142,8 @@ if st.button("Generate Professional Email ✨"):
                 whatsapp_text = urllib.parse.quote(result)
                 st.markdown(f'<a href="https://wa.me/?text={whatsapp_text}" target="_blank" class="wa-button">Share to WhatsApp 📱</a>', unsafe_allow_html=True)
                 
-                st.balloons() # Fun celebration effect!
-                st.rerun()
+                st.balloons()
             except Exception as e:
                 st.error(f"AI Error: {e}")
     else:
-        st.warning("Please enter text first.")
+        st.warning("Please provide a draft first!")
