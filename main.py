@@ -74,7 +74,7 @@ st.markdown("""
         line-height: 2.5em;
     }
     </style>
-    """, unsafe_allow_html=True) # Fixed parameter
+    """, unsafe_allow_html=True) # Using the corrected parameter
 
 # 5. App Header
 st.title("✉️ Vicky_Email_writer")
@@ -124,7 +124,7 @@ if st.button("Generate Professional Email ✨"):
                 whatsapp_url = f"https://wa.me/?text={whatsapp_text}"
                 st.markdown(f'<a href="{whatsapp_url}" target="_blank" class="wa-button">Share to WhatsApp 📱</a>', unsafe_allow_html=True)
                 
-                st.rerun() # Update sidebar history immediately
+                st.rerun() # Updates history instantly
                 
             except Exception as e:
                 st.error(f"AI Error: {e}")
