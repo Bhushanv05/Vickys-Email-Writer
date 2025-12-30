@@ -10,14 +10,22 @@ st.set_page_config(page_title="Vicky Email Writer", page_icon="✉️", layout="
 # 2. Sidebar Implementation
 with st.sidebar:
     st.title("📖 App Menu")
-    st.markdown("""
-    **How to Use:**
-    1. Select your target language.
-    2. Click the 🎤 mic to speak or type your notes.
-    3. Choose the tone and length.
-    4. Click 'Generate' and share!
-    """)
+    st.markdown("Turn rough Marathi or English notes into professional emails.")
     
+    # NEW: Share App Link Button
+    st.divider()
+    st.subheader("📲 Share this App")
+    app_link = "https://vicky-email-writer.streamlit.app/"
+    share_msg = urllib.parse.quote(f"Hey! Check out Vicky's AI Email Writer. It converts Marathi/English voice notes into professional emails: {app_link}")
+    st.markdown(f'''
+        <a href="https://wa.me/?text={share_msg}" target="_blank" 
+           style="text-decoration:none;">
+            <button style="background-color:#25D366; color:white; border:none; padding:10px; border-radius:5px; width:100%; cursor:pointer; font-weight:bold;">
+                Share App via WhatsApp 📱
+            </button>
+        </a>
+    ''', unsafe_allow_html=True)
+
     st.divider()
     st.subheader("📜 Recent History")
     if 'history' not in st.session_state:
@@ -27,17 +35,14 @@ with st.sidebar:
         for i, item in enumerate(st.session_state.history):
             with st.expander(f"Email {i+1}"):
                 st.text(item)
-        if st.button("🗑️ Clear History"):
-            st.session_state.history = []
-            st.rerun()
     else:
-        st.write("No history in this session.")
+        st.write("No history yet.")
 
-    # Personalized Signature at the bottom
+    # Your Personalized Signature (As requested)
     st.divider()
-    st.info("🎨 **Built by Vicky** | Free for friends")
+    st.markdown("### Built by Vicky")
 
-# 3. Styling
+# 3. Custom Styling (Green Theme)
 st.markdown("""
     <style>
     .stApp { background-color: #f1f8e9; }
@@ -49,23 +54,22 @@ st.markdown("""
 
 # 4. Initialize Groq
 try:
-    api_key = st.secrets["GROQ_API_KEY"] if "GROQ_API_KEY" in st.secrets else os.environ.get("GROQ_API_KEY")
+    api_key = st.secrets["GROQ_API_KEY"]
     client = Groq(api_key=api_key)
-except Exception:
-    st.error("API Key missing.")
+except:
+    st.error("Please check your Streamlit Secrets.")
     st.stop()
 
-# 5. Main UI
+# 5. Main Application Content
 st.title("✉️ Vicky_Email_writer")
-
 target_lang = st.radio("Final Email Language:", ["English", "Marathi"], horizontal=True)
 
 st.write("### Step 1: Speak or Type your message")
-audio_input = mic_recorder(start_prompt="🎤 Click to Speak", stop_prompt="🛑 Stop", key='recorder')
+audio_input = mic_recorder(start_prompt="🎤 Click to Speak", stop_prompt="🛑 Stop Recording", key='recorder')
 
 voice_text = ""
 if audio_input:
-    with st.spinner("Processing voice..."):
+    with st.spinner("Vicky is listening..."):
         try:
             with open("temp.wav", "wb") as f: f.write(audio_input['bytes'])
             with open("temp.wav", "rb") as af:
@@ -73,29 +77,28 @@ if audio_input:
                 voice_text = transcription.text
         except: st.error("Voice processing error.")
 
-draft = st.text_area("Your rough draft:", value=voice_text, height=150, placeholder="Marathi or English...")
+draft = st.text_area("Your rough notes:", value=voice_text, height=150)
 
 col1, col2 = st.columns(2)
 with col1: tone = st.selectbox("Tone", ["Formal", "Friendly", "Urgent"])
 with col2: length = st.selectbox("Length", ["Concise", "Detailed"])
 
-# 6. AI Logic
+# 6. Generation Logic
 if st.button("Generate Professional Email ✨"):
     if draft:
         with st.spinner("Vicky is writing..."):
             try:
-                prompt = f"Rewrite as a professional email in {target_lang}. Tone: {tone}, Length: {length}. Content: {draft}"
+                prompt = f"Rewrite the following notes into a professional email in {target_lang}. Tone: {tone}, Length: {length}. Notes: {draft}"
                 response = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": prompt}])
                 result = response.choices[0].message.content
                 
-                # Add to history
                 st.session_state.history.insert(0, result)
-                
                 st.info(result)
-                st.download_button("Download 💾", result, file_name="email.txt")
                 
+                # WhatsApp Result Sharing
                 whatsapp_text = urllib.parse.quote(result)
-                st.markdown(f'<a href="https://wa.me/?text={whatsapp_text}" target="_blank" class="wa-button">Share to WhatsApp 📱</a>', unsafe_allow_html=True)
+                st.markdown(f'<a href="https://wa.me/?text={whatsapp_text}" target="_blank" class="wa-button">Share Email to WhatsApp 📱</a>', unsafe_allow_html=True)
+                
                 st.balloons()
                 st.rerun() 
-            except Exception as e: st.error(f"Error: {e}")
+            except: st.error("AI Error.")
