@@ -2,3 +2,4 @@ streamlit
 groq
 qrcode
 pillow
+streamlit-mic-recorder
