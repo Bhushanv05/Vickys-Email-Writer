@@ -33,6 +33,11 @@ with st.sidebar:
         for i, item in enumerate(st.session_state.history):
             with st.expander(f"Email {i+1}"):
                 st.text(item)
+        
+        # New: Clear History Button
+        if st.button("🗑️ Clear History"):
+            st.session_state.history = []
+            st.rerun()
     else:
         st.write("No history in this session yet.")
     
@@ -66,9 +71,10 @@ st.markdown("""
         text-align: center;
         font-weight: bold;
         margin-top: 10px;
+        line-height: 2.5em;
     }
     </style>
-    """, unsafe_allow_html=True) # Corrected parameter
+    """, unsafe_allow_html=True) # Fixed parameter
 
 # 5. App Header
 st.title("✉️ Vicky_Email_writer")
@@ -118,7 +124,7 @@ if st.button("Generate Professional Email ✨"):
                 whatsapp_url = f"https://wa.me/?text={whatsapp_text}"
                 st.markdown(f'<a href="{whatsapp_url}" target="_blank" class="wa-button">Share to WhatsApp 📱</a>', unsafe_allow_html=True)
                 
-                st.rerun() # Refresh sidebar to show new history
+                st.rerun() # Update sidebar history immediately
                 
             except Exception as e:
                 st.error(f"AI Error: {e}")
