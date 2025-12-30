@@ -1,6 +1,9 @@
 import streamlit as st
 import os
 import urllib.parse
+import qrcode
+from PIL import Image
+from io import BytesIO
 from groq import Groq
 
 # 1. Page Configuration
@@ -10,50 +13,45 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. Initialize History in Session State
+# 2. Welcome Message (Shows on every load)
+st.toast("Welcome to Vicky's Email Writer! ✉️", icon="👋")
+
+# 3. Initialize History
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# 3. Sidebar with Help Guide and History
+# 4. Sidebar: Menu, QR Code, and History
 with st.sidebar:
     st.title("📖 App Menu")
-    st.markdown("""
-    **How to Use:**
-    1. Paste your rough notes.
-    2. Choose tone and length.
-    3. Click Generate!
-    4. Share via WhatsApp or Download.
-    """)
+    st.markdown("Easily polish your rough notes into professional emails.")
+    
+    # QR Code Section
+    st.divider()
+    st.subheader("📲 Share App")
+    # Replace with your actual Streamlit URL
+    app_url = "https://vicky-email-writer.streamlit.app" 
+    qr = qrcode.make(app_url)
+    buf = BytesIO()
+    qr.save(buf, format="PNG")
+    st.image(buf, caption="Scan to share!")
     
     st.divider()
-    
-    # History Section
     st.subheader("📜 Recent History")
     if st.session_state.history:
         for i, item in enumerate(st.session_state.history):
             with st.expander(f"Email {i+1}"):
                 st.text(item)
-        
-        # New: Clear History Button
         if st.button("🗑️ Clear History"):
             st.session_state.history = []
             st.rerun()
     else:
-        st.write("No history in this session yet.")
-    
-    st.divider()
-    st.info("Built by Vicky | Free for friends")
+        st.write("No history yet.")
 
-# 4. Fixed CSS for Green Theme
+# 5. Fixed CSS for Green Theme
 st.markdown("""
     <style>
-    .stApp {
-        background-color: #f1f8e9;
-    }
-    h1 {
-        color: #1b5e20;
-        text-align: center;
-    }
+    .stApp { background-color: #f1f8e9; }
+    h1 { color: #1b5e20; text-align: center; }
     .stButton>button {
         background-color: #2e7d32 !important;
         color: white !important;
@@ -74,21 +72,18 @@ st.markdown("""
         line-height: 2.5em;
     }
     </style>
-    """, unsafe_allow_html=True) # Using the corrected parameter
-
-# 5. App Header
-st.title("✉️ Vicky_Email_writer")
-st.write("Professional emails made easy.")
+    """, unsafe_allow_html=True)
 
 # 6. Initialize Groq Client
 try:
     api_key = st.secrets["GROQ_API_KEY"] if "GROQ_API_KEY" in st.secrets else os.environ.get("GROQ_API_KEY")
     client = Groq(api_key=api_key)
 except Exception:
-    st.error("Error: GROQ_API_KEY not found in Secrets.")
+    st.error("Error: GROQ_API_KEY missing.")
     st.stop()
 
-# 7. Main Input Section
+# 7. Main UI
+st.title("✉️ Vicky_Email_writer")
 draft = st.text_area("Step 1: Paste your rough message here:", height=150)
 col1, col2 = st.columns(2)
 with col1:
@@ -96,36 +91,29 @@ with col1:
 with col2:
     length = st.selectbox("Length", ["Concise", "Detailed"])
 
-# 8. AI Generation Logic
 if st.button("Generate Professional Email ✨"):
     if draft:
         with st.spinner("Vicky is writing..."):
             try:
-                prompt = f"Rewrite this as a professional email. Tone: {tone}, Length: {length}. Content: {draft}"
+                prompt = f"Rewrite as a professional email. Tone: {tone}, Length: {length}. Content: {draft}"
                 response = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[{"role": "user", "content": prompt}]
                 )
                 result = response.choices[0].message.content
                 
-                # Save to History (Keep last 3)
                 st.session_state.history.insert(0, result)
-                if len(st.session_state.history) > 3:
-                    st.session_state.history.pop()
+                if len(st.session_state.history) > 3: st.session_state.history.pop()
                 
-                # Display Results
                 st.markdown("### 📄 Result:")
                 st.info(result)
-                
-                # Action Buttons
                 st.download_button("Download Email 💾", result, file_name="email.txt")
                 
                 whatsapp_text = urllib.parse.quote(result)
-                whatsapp_url = f"https://wa.me/?text={whatsapp_text}"
-                st.markdown(f'<a href="{whatsapp_url}" target="_blank" class="wa-button">Share to WhatsApp 📱</a>', unsafe_allow_html=True)
+                st.markdown(f'<a href="https://wa.me/?text={whatsapp_text}" target="_blank" class="wa-button">Share to WhatsApp 📱</a>', unsafe_allow_html=True)
                 
-                st.rerun() # Updates history instantly
-                
+                st.balloons() # Fun celebration effect!
+                st.rerun()
             except Exception as e:
                 st.error(f"AI Error: {e}")
     else:
