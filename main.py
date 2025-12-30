@@ -83,7 +83,7 @@ with st.sidebar:
     fb = st.text_area("Suggestions?", placeholder="What should Vicky add next?")
     if st.button("Submit"):
         st.success("Thanks! I'll see this in the logs. 🙏")
-        print(f"FEEDBACK: {fb}")
+        print(f"FEEDBACK FROM USER: {fb}")
 
 # 6. Initialize Groq Client
 try:
@@ -135,12 +135,12 @@ if st.button("Generate Professional Email ✨"):
     if draft:
         with st.spinner("Vicky is writing..."):
             try:
-                # Instruction to translate Marathi to English (or vice versa) if needed
+                # Instruction to handle Marathi and English drafting
                 prompt = f"""
                 Draft: '{draft}'. 
-                Convert this into a professional email in {target_lang}. 
+                Rewrite this as a high-quality professional email in {target_lang}. 
                 Tone: {tone}, Length: {length}.
-                Ensure the Marathi is natural and professional if selected.
+                If input is Marathi and target is English, translate it professionally.
                 """
                 response = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
@@ -164,7 +164,7 @@ if st.button("Generate Professional Email ✨"):
                 st.markdown(f'<a href="{whatsapp_url}" target="_blank" class="wa-button">Share to WhatsApp 📱</a>', unsafe_allow_html=True)
                 
                 st.balloons()
-                st.rerun()
+                st.rerun() # Refresh history immediately
             except Exception as e:
                 st.error(f"AI Error: {e}")
     else:
