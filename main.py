@@ -253,34 +253,28 @@ st.markdown("""
 st.markdown("---")
 st.markdown("### ✍️ Step 1: Choose Your Input Method")
 
-# Prominent input method selector - Now with 3 options
-input_method_col1, input_method_col2, input_method_col3 = st.columns(3)
-with input_method_col1:
-    st.markdown("""
-    <div style='background: #e8f5e9; padding: 15px; border-radius: 10px; text-align: center; border: 2px solid #66bb6a;'>
-        <div style='font-size: 28px; margin-bottom: 5px;'>⌨️</div>
-        <div style='font-weight: bold; color: #1b5e20; font-size: 13px;'>Type It</div>
-        <div style='font-size: 11px; color: #666;'>Write below</div>
-    </div>
-    """, unsafe_allow_html=True)
+# Input method selector buttons (interactive)
+col1, col2, col3 = st.columns(3)
 
-with input_method_col2:
-    st.markdown("""
-    <div style='background: #e8f5e9; padding: 15px; border-radius: 10px; text-align: center; border: 2px solid #66bb6a;'>
-        <div style='font-size: 28px; margin-bottom: 5px;'>🎤</div>
-        <div style='font-weight: bold; color: #1b5e20; font-size: 13px;'>Speak It</div>
-        <div style='font-size: 11px; color: #666;'>Use mic</div>
-    </div>
-    """, unsafe_allow_html=True)
+with col1:
+    if st.button("⌨️ Type", key="btn_type", use_container_width=True, help="Type your message"):
+        st.session_state.input_method = "type"
 
-with input_method_col3:
-    st.markdown("""
-    <div style='background: #e8f5e9; padding: 15px; border-radius: 10px; text-align: center; border: 2px solid #66bb6a;'>
-        <div style='font-size: 28px; margin-bottom: 5px;'>📸</div>
-        <div style='font-weight: bold; color: #1b5e20; font-size: 13px;'>Photo It</div>
-        <div style='font-size: 11px; color: #666;'>Capture notes</div>
-    </div>
-    """, unsafe_allow_html=True)
+with col2:
+    if st.button("🎤 Speak", key="btn_speak", use_container_width=True, help="Record voice"):
+        st.session_state.input_method = "speak"
+        
+with col3:
+    if st.button("📸 Photo", key="btn_photo", use_container_width=True, help="Upload image"):
+        st.session_state.input_method = "photo"
+
+# Initialize input method if not set
+if 'input_method' not in st.session_state:
+    st.session_state.input_method = "type"
+
+# Show current selection
+method_labels = {"type": "⌨️ Typing", "speak": "🎤 Speaking", "photo": "📸 Photo Upload"}
+st.info(f"📍 Current mode: **{method_labels.get(st.session_state.input_method, 'Typing')}**")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -288,64 +282,89 @@ st.markdown("<br>", unsafe_allow_html=True)
 with st.expander("💡 See Examples - How it works"):
     if input_lang == "Marathi" and target_lang == "English":
         st.markdown("""
-        **🎤 Marathi Input Example:**
-        > "नमस्कार, मला उद्याच्या मीटिंग बद्दल सांगायचे आहे की मी येऊ शकणार नाही. मला काही महत्वाचे काम आहे."
+        <div class="example-box">
+        <div class="example-title">🎤 Marathi Input Example:</div>
+        <div class="example-text">
+        "नमस्कार, मला उद्याच्या मीटिंग बद्दल सांगायचे आहे की मी येऊ शकणार नाही. मला काही महत्वाचे काम आहे."
+        </div>
+        </div>
         
-        **📧 Professional English Email Output:**
-        > Subject: Unable to Attend Tomorrow's Meeting
-        > 
-        > Dear Sir/Madam,
-        > 
-        > I hope this email finds you well. I am writing to inform you that I will be unable to attend tomorrow's meeting due to some important prior commitments...
-        """)
+        <div class="example-box">
+        <div class="example-title">📧 Professional English Email Output:</div>
+        <div class="example-text">
+        Subject: Unable to Attend Tomorrow's Meeting<br><br>
+        Dear Sir/Madam,<br><br>
+        I hope this email finds you well. I am writing to inform you that I will be unable to attend tomorrow's meeting due to some important prior commitments...
+        </div>
+        </div>
+        """, unsafe_allow_html=True)
     elif input_lang == "English" and target_lang == "Marathi":
         st.markdown("""
-        **🎤 English Input Example:**
-        > "Hi, I want to tell about tomorrow's meeting that I cannot come. I have some important work."
+        <div class="example-box">
+        <div class="example-title">🎤 English Input Example:</div>
+        <div class="example-text">
+        "Hi, I want to tell about tomorrow's meeting that I cannot come. I have some important work."
+        </div>
+        </div>
         
-        **📧 Professional Marathi Email Output:**
-        > विषय: उद्याच्या बैठकीला उपस्थित राहू शकणार नाही
-        > 
-        > आदरणीय महोदय/महोदया,
-        > 
-        > मला तुम्हाला कळवायचे आहे की काही महत्त्वाच्या कामामुळे मी उद्याच्या बैठकीला उपस्थित राहू शकणार नाही...
-        """)
+        <div class="example-box">
+        <div class="example-title">📧 Professional Marathi Email Output:</div>
+        <div class="example-text">
+        विषय: उद्याच्या बैठकीला उपस्थित राहू शकणार नाही<br><br>
+        आदरणीय महोदय/महोदया,<br><br>
+        मला तुम्हाला कळवायचे आहे की काही महत्त्वाच्या कामामुळे मी उद्याच्या बैठकीला उपस्थित राहू शकणार नाही...
+        </div>
+        </div>
+        """, unsafe_allow_html=True)
     elif input_lang == "English" and target_lang == "English":
         st.markdown("""
-        **🎤 Rough English Input:**
-        > "hey boss need leave tomorrow got some family work cant come office"
+        <div class="example-box">
+        <div class="example-title">🎤 Rough English Input:</div>
+        <div class="example-text">
+        "hey boss need leave tomorrow got some family work cant come office"
+        </div>
+        </div>
         
-        **📧 Professional English Email Output:**
-        > Subject: Leave Request for Tomorrow
-        > 
-        > Dear Sir,
-        > 
-        > I hope this message finds you well. I am writing to request leave for tomorrow due to an important family commitment. I will be unable to attend the office.
-        > 
-        > I apologize for any inconvenience this may cause and will ensure all pending work is completed upon my return.
-        > 
-        > Thank you for your understanding.
-        > 
-        > Best regards
-        """)
+        <div class="example-box">
+        <div class="example-title">📧 Professional English Email Output:</div>
+        <div class="example-text">
+        Subject: Leave Request for Tomorrow<br><br>
+        Dear Sir,<br><br>
+        I hope this message finds you well. I am writing to request leave for tomorrow due to an important family commitment. I will be unable to attend the office.<br><br>
+        I apologize for any inconvenience this may cause and will ensure all pending work is completed upon my return.<br><br>
+        Thank you for your understanding.<br><br>
+        Best regards
+        </div>
+        </div>
+        """, unsafe_allow_html=True)
     else:
         st.markdown("""
-        **Example:**
-        > "Boss, please approve my leave for next week. Family function."
+        <div class="example-box">
+        <div class="example-title">Example:</div>
+        <div class="example-text">
+        "Boss, please approve my leave for next week. Family function."
+        </div>
+        </div>
         
-        **Professional Email:**
-        > Subject: Leave Request for Next Week
-        > 
-        > Dear Sir,
-        > 
-        > I am writing to request leave for next week due to a family function...
-        """)
+        <div class="example-box">
+        <div class="example-title">Professional Email:</div>
+        <div class="example-text">
+        Subject: Leave Request for Next Week<br><br>
+        Dear Sir,<br><br>
+        I am writing to request leave for next week due to a family function...
+        </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # Voice Input (only works with Groq for transcription)
 voice_text = ""
 photo_text = ""
 
-if ai_provider == "groq":
+# Check if we have Groq for voice
+has_groq = "GROQ_API_KEY" in st.secrets or ai_provider == "groq"
+
+if has_groq and ai_provider == "groq":
+    st.markdown("---")
     st.markdown("#### 🎤 Option 1: Record Your Voice")
     audio_input = mic_recorder(
         start_prompt="🎤 Click to Start Recording", 
@@ -374,17 +393,31 @@ if ai_provider == "groq":
             except Exception as e:
                 st.error(f"❌ Voice error: {str(e)}")
                 voice_text = ""
-else:
-    st.info("💡 Voice input requires GROQ_API_KEY. Add it in secrets to enable voice recording.")
+elif not has_groq:
+    st.markdown("---")
+    st.info("💡 Voice recording feature: Add GROQ_API_KEY in settings to enable voice input.")
 
 # Photo/Image Input
+st.markdown("---")
 st.markdown("#### 📸 Option 2: Upload or Capture Photo")
-st.caption("Upload a photo of handwritten notes, whiteboard, or any document")
+st.markdown("""
+<div style='background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 100%); 
+     padding: 20px; border-radius: 12px; border: 2px solid #2196F3; 
+     text-align: center; margin: 15px 0;'>
+    <div style='font-size: 48px; margin-bottom: 10px;'>📸</div>
+    <div style='font-weight: bold; color: #1565c0; font-size: 16px; margin-bottom: 8px;'>
+        Upload Photo of Your Notes
+    </div>
+    <div style='color: #333; font-size: 13px; margin-bottom: 15px;'>
+        Handwritten notes, whiteboard, documents - we'll extract the text!
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 uploaded_file = st.file_uploader(
-    "Choose an image...", 
+    "📤 Choose an image file", 
     type=['png', 'jpg', 'jpeg'],
-    help="Take a photo of your notes or upload an existing image"
+    help="Upload a clear photo of your notes for best results"
 )
 
 if uploaded_file is not None:
