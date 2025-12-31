@@ -1,5 +1,6 @@
 streamlit
-groq
-qrcode
-pillow
 streamlit-mic-recorder
+google-generativeai
+groq
+Pillow
+
