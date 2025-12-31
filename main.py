@@ -189,7 +189,7 @@ try:
     # Try Gemini first (recommended)
     if "GEMINI_API_KEY" in st.secrets:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-flash-latest')
         ai_provider = "gemini"
     # Fallback to Groq if Gemini not available
     elif "GROQ_API_KEY" in st.secrets:
@@ -426,28 +426,35 @@ if uploaded_file is not None:
     
     with st.spinner("🔍 Extracting text from image..."):
         try:
-            # Use Gemini Vision API if available, otherwise use Groq
+            # Use Gemini Vision API if available
             if ai_provider == "gemini":
+                # Reset file pointer
+                uploaded_file.seek(0)
+                
                 # Prepare image for Gemini
-                import PIL.Image
-                img = PIL.Image.open(uploaded_file)
+                from PIL import Image
+                img = Image.open(uploaded_file)
                 
                 # Use Gemini's vision capability
-                vision_model = genai.GenerativeModel('gemini-1.5-flash')
+                vision_model = genai.GenerativeModel('gemini-1.5-flash-latest')
                 response = vision_model.generate_content([
-                    "Extract all text from this image. If it's handwritten notes or rough text, transcribe it exactly as written. Include all text you can see:",
+                    "Extract all text from this image. Transcribe exactly what you see, including handwritten text. Just return the text, no extra explanation:",
                     img
                 ])
                 photo_text = response.text
                 st.success("✅ Text extracted from image!")
+                st.info(f"📝 Extracted text: {photo_text[:100]}..." if len(photo_text) > 100 else f"📝 Extracted text: {photo_text}")
                 
             else:
-                st.warning("⚠️ Image text extraction requires GEMINI_API_KEY. Please add it to secrets.")
-                st.info("💡 For now, you can type the text manually in the box below.")
+                st.warning("⚠️ Image text extraction requires GEMINI_API_KEY.")
+                st.info("💡 Please add GEMINI_API_KEY to your Streamlit Secrets to use photo upload.")
                 
         except Exception as e:
             st.error(f"❌ Image processing error: {str(e)}")
-            st.info("💡 Try typing the text manually in the box below.")
+            st.info("💡 Please try:")
+            st.info("1. Upload a clearer image")
+            st.info("2. Check your GEMINI_API_KEY")
+            st.info("3. Or type the text manually below")
 
 st.markdown("#### ⌨️ Option 3: Type Your Message")
 
