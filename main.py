@@ -35,9 +35,9 @@ with st.sidebar:
     # Share App Link Button
     st.markdown("---")
     st.markdown("### 📲 Share this App")
-    app_link = "https://promailer-ai.streamlit.app/"  # Update with your actual URL
+    app_link = "https://vicky-email-writer.streamlit.app/"
     share_msg = urllib.parse.quote(
-        f"Hey! Check out ProMailer AI - It converts rough notes into professional emails. Type or speak in any language: {app_link}"
+        f"Hey! Check out Vicky's AI Email Writer. It converts Marathi/English voice notes into professional emails: {app_link}"
     )
     
     # WhatsApp Share Button
@@ -94,8 +94,8 @@ with st.sidebar:
 
     # Signature and Stats
     st.markdown("---")
-    st.markdown("### 💚 ProMailer AI")
-    st.caption("Built by Bhushan | Powered by Gemini AI")
+    st.markdown("### 💚 Built by Vicky")
+    st.caption("Powered by Google Gemini AI")
     
     # Session Stats
     st.markdown("---")
@@ -206,8 +206,8 @@ except Exception as e:
     st.stop()
 
 # 6. Main Application Content
-st.title("✉️ ProMailer AI")
-st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 16px; font-weight: 600;'>⌨️ Type | 🎤 Speak | 📸 Photo → Professional Emails!</p>", unsafe_allow_html=True)
+st.title("✉️ Vicky Email Writer")
+st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 16px; font-weight: 600;'>⌨️ Type OR 🎤 Speak → Get Professional Emails!</p>", unsafe_allow_html=True)
 
 # Language Selection
 st.markdown("### 🌐 Language Settings")
@@ -495,11 +495,12 @@ Notes to rewrite:
                     
                 elif ai_provider == "gemini":
                     # Use Gemini
+                    import google.generativeai as genai
                     response = model.generate_content(prompt)
                     result = response.text
                 else:
-                    st.error("No AI provider configured")
-                    return
+                    st.error("❌ No AI provider configured")
+                    st.stop()
                 
                 # Save to history
                 timestamp = datetime.datetime.now().strftime("%d/%m %H:%M")
@@ -597,7 +598,7 @@ with col3:
 
 st.markdown(
     f"<div style='text-align: center; color: #666; padding: 20px; font-size: 14px;'>"
-    f"ProMailer AI - Built with 💚 by Bhushan | Powered by {ai_provider.upper()} AI"
+    f"Made with 💚 by Vicky | Powered by {ai_provider.upper()} AI"
     "</div>", 
     unsafe_allow_html=True
 )
