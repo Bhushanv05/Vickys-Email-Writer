@@ -30,7 +30,7 @@ if 'current_email' not in st.session_state:
 # 3. Sidebar Implementation
 with st.sidebar:
     st.markdown("# 📖 ProMailer AI")
-    st.caption("v2.0.1 - Clean Version")  # Version number
+    st.caption("v2.0.1 - Clean Version")
     st.markdown("**✍️ Type OR 🎤 Speak**")
     st.caption("⌨️ Type rough notes → Professional email")
     st.caption("🎤 Speak casually → Professional email")
@@ -39,12 +39,11 @@ with st.sidebar:
     # Share App Link Button
     st.markdown("---")
     st.markdown("### 📲 Share this App")
-    app_link = "https://vicky-email-writer.streamlit.app/"
+    app_link = "https://promailer-ai.streamlit.app/"
     share_msg = urllib.parse.quote(
-        f"Hey! Check out Vicky's AI Email Writer. It converts Marathi/English voice notes into professional emails: {app_link}"
+        f"Hey! Check out ProMailer AI - Converts rough notes into professional emails. Type or speak in any language: {app_link}"
     )
     
-    # WhatsApp Share Button
     st.markdown(f'''
         <a href="https://wa.me/?text={share_msg}" target="_blank" 
            style="text-decoration:none; display:block;">
@@ -62,19 +61,16 @@ with st.sidebar:
     st.markdown("### 📜 Recent History")
     
     if st.session_state.history:
-        # Add clear history button
         if st.button("🗑️ Clear History", use_container_width=True):
             st.session_state.history = []
             st.rerun()
         
         for i, item in enumerate(st.session_state.history):
             timestamp = item.get('timestamp', 'No date')
-            preview = item.get('email', '')[:40] + "..." if len(item.get('email', '')) > 40 else item.get('email', '')
             
             with st.expander(f"📧 Email {i+1} - {timestamp}"):
-                st.text_area("Email Content", value=item.get('email', ''), height=120, key=f"history_{i}", disabled=True, label_visibility="collapsed")
+                st.text_area("", value=item.get('email', ''), height=120, key=f"history_{i}", disabled=True, label_visibility="collapsed")
                 
-                # Individual email actions
                 col1, col2 = st.columns(2)
                 with col1:
                     if st.button("📋 Use This", key=f"copy_{i}", use_container_width=True):
@@ -96,29 +92,12 @@ with st.sidebar:
     else:
         st.info("📭 No history yet. Generate your first email!")
 
-    # Signature and Stats
+    # Signature
     st.markdown("---")
-    st.markdown("### 💚 Built by Vicky")
-    st.caption("Powered by Google Gemini AI")
-    
-    # Session Stats
-    st.markdown("---")
-    st.markdown("### 📊 Your Session Stats")
-    
-    # Calculate session duration
-    session_duration = datetime.datetime.now() - st.session_state.session_start_time
-    duration_mins = int(session_duration.total_seconds() / 60)
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("📧 Emails Generated", st.session_state.emails_generated)
-    with col2:
-        st.metric("⏱️ Session Time", f"{duration_mins} min")
-    
-    # History count
-    st.metric("📜 History Count", len(st.session_state.history))
+    st.markdown("### 💚 ProMailer AI")
+    st.caption("Built by Bhushan | Powered by AI")
 
-# 4. Custom Styling (Mobile Optimized)
+# 4. Custom Styling
 st.markdown("""
     <style>
     .stApp { 
@@ -165,21 +144,6 @@ st.markdown("""
         color: #2e7d32 !important;
         font-size: 14px !important;
     }
-    .result-box {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 12px;
-        border: 2px solid #66bb6a;
-        margin: 15px 0;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .result-text {
-        color: #1b5e20;
-        font-size: 15px;
-        line-height: 1.6;
-        white-space: pre-wrap;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
     hr {
         margin: 20px 0 !important;
         border-color: #66bb6a !important;
@@ -189,20 +153,17 @@ st.markdown("""
 
 # 5. Initialize AI Client
 try:
-    # Priority 1: Try Groq first (fastest and most reliable)
     if "GROQ_API_KEY" in st.secrets:
         from groq import Groq
         api_key = st.secrets["GROQ_API_KEY"]
         client = Groq(api_key=api_key)
         ai_provider = "groq"
         
-    # Priority 2: Try Hugging Face if Groq not available
     elif "HUGGINGFACE_API_KEY" in st.secrets:
         import requests
         hf_api_key = st.secrets["HUGGINGFACE_API_KEY"]
         ai_provider = "huggingface"
         
-    # Priority 3: Try Gemini as last resort
     elif "GEMINI_API_KEY" in st.secrets:
         import google.generativeai as genai
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
@@ -212,8 +173,6 @@ try:
     else:
         st.error("⚠️ Please configure at least one API key in Streamlit Secrets.")
         st.info("Supported APIs: GROQ_API_KEY (recommended), HUGGINGFACE_API_KEY, or GEMINI_API_KEY")
-        st.info("Get free Groq API key: https://console.groq.com/keys")
-        st.info("Get free Hugging Face key: https://huggingface.co/settings/tokens")
         st.stop()
         
 except Exception as e:
@@ -221,8 +180,13 @@ except Exception as e:
     st.stop()
 
 # 6. Main Application Content
-st.title("✉️ Vicky Email Writer")
-st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 16px; font-weight: 600;'>⌨️ Type OR 🎤 Speak → Get Professional Emails!</p>", unsafe_allow_html=True)
+st.markdown('<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />', unsafe_allow_html=True)
+st.markdown('<meta http-equiv="Pragma" content="no-cache" />', unsafe_allow_html=True)
+st.markdown('<meta http-equiv="Expires" content="0" />', unsafe_allow_html=True)
+
+st.title("✉️ ProMailer AI")
+st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 16px; font-weight: 600;'>⌨️ Type OR 🎤 Speak → Professional Emails!</p>", unsafe_allow_html=True)
+st.caption("v2.0.1 - Statistics Removed")
 
 # Language Selection
 st.markdown("### 🌐 Language Settings")
@@ -231,7 +195,7 @@ col1, col2 = st.columns(2)
 with col1:
     input_lang = st.selectbox(
         "🎤 Input Language:", 
-        ["English", "Marathi", "Hindi", "Mix (Marathi+English)"],  # English first now
+        ["English", "Marathi", "Hindi", "Mix (Marathi+English)"],
         help="Language you'll speak or type in"
     )
 
@@ -269,7 +233,6 @@ st.markdown("""
 st.markdown("---")
 st.markdown("### ✍️ Step 1: Choose Your Input Method")
 
-# Input method selector buttons - Only Type and Speak
 col1, col2 = st.columns(2)
 
 with col1:
@@ -280,18 +243,47 @@ with col2:
     if st.button("🎤 Speak", key="btn_speak", use_container_width=True, help="Record voice"):
         st.session_state.input_method = "speak"
 
-# Initialize input method if not set
 if 'input_method' not in st.session_state:
     st.session_state.input_method = "type"
 
-# Show current selection
 method_labels = {"type": "⌨️ Typing", "speak": "🎤 Speaking"}
 st.info(f"📍 Current mode: **{method_labels.get(st.session_state.input_method, 'Typing')}**")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Show examples based on language selection
-with st.expander("💡 See Examples - How it works"):
+# Show examples
+st.markdown("""
+<div style='background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%); 
+     padding: 15px; border-radius: 10px; border: 2px solid #2e7d32; margin: 15px 0;'>
+    <div style='font-weight: bold; color: #1b5e20; font-size: 18px; margin-bottom: 10px;'>
+        💡 Examples - How it works
+    </div>
+""", unsafe_allow_html=True)
+
+with st.expander("Click to see examples", expanded=False):
+    st.markdown("""
+    <style>
+    .example-box {
+        background: #ffffff !important;
+        padding: 15px !important;
+        border-radius: 10px !important;
+        border: 2px solid #66bb6a !important;
+        margin: 10px 0 !important;
+    }
+    .example-title {
+        font-weight: bold !important;
+        color: #1b5e20 !important;
+        font-size: 16px !important;
+        margin-bottom: 8px !important;
+    }
+    .example-text {
+        color: #000000 !important;
+        font-size: 15px !important;
+        line-height: 1.6 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     if input_lang == "Marathi" and target_lang == "English":
         st.markdown("""
         <div class="example-box">
@@ -368,10 +360,10 @@ with st.expander("💡 See Examples - How it works"):
         </div>
         """, unsafe_allow_html=True)
 
+st.markdown("</div>", unsafe_allow_html=True)
+
 # Voice Input
 voice_text = ""
-
-# Check if we have Groq for voice
 has_groq = "GROQ_API_KEY" in st.secrets
 
 if has_groq:
@@ -426,7 +418,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Text Input
 draft = st.text_area(
     f"📝 Your notes in {input_lang}:", 
     value=voice_text or st.session_state.current_email, 
@@ -453,7 +444,7 @@ with col2:
         help="Choose the length"
     )
 
-# 7. Generation Logic
+# Generation Logic
 st.markdown("---")
 if st.button("✨ Generate Professional Email", use_container_width=True):
     if not draft or draft.strip() == "":
@@ -461,7 +452,6 @@ if st.button("✨ Generate Professional Email", use_container_width=True):
     else:
         with st.spinner("🤖 Creating your email..."):
             try:
-                # Build prompt with language specification
                 prompt = f"""The user has provided notes in {input_lang}. 
 Rewrite these notes into a professional email in {target_lang}.
 
@@ -479,9 +469,7 @@ Requirements:
 Notes to rewrite:
 {draft}"""
 
-                # Call API based on provider
                 if ai_provider == "groq":
-                    # Use Groq (Priority 1)
                     response = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
                         messages=[{"role": "user", "content": prompt}],
@@ -491,12 +479,9 @@ Notes to rewrite:
                     result = response.choices[0].message.content
                     
                 elif ai_provider == "huggingface":
-                    # Use Hugging Face (Priority 2)
                     import requests
-                    
                     API_URL = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
                     headers = {"Authorization": f"Bearer {hf_api_key}"}
-                    
                     payload = {
                         "inputs": prompt,
                         "parameters": {
@@ -505,18 +490,14 @@ Notes to rewrite:
                             "return_full_text": False
                         }
                     }
-                    
                     response = requests.post(API_URL, headers=headers, json=payload)
-                    
                     if response.status_code == 200:
                         result = response.json()[0]["generated_text"]
                     else:
                         st.error(f"Hugging Face API Error: {response.status_code}")
-                        st.info("Falling back to simpler processing...")
                         result = f"Subject: Professional Email\n\nDear Recipient,\n\n{draft}\n\nBest regards"
                     
                 elif ai_provider == "gemini":
-                    # Use Gemini (Priority 3)
                     import google.generativeai as genai
                     response = model.generate_content(prompt)
                     result = response.text
@@ -525,7 +506,6 @@ Notes to rewrite:
                     st.error("❌ No AI provider configured")
                     st.stop()
                 
-                # Save to history
                 timestamp = datetime.datetime.now().strftime("%d/%m %H:%M")
                 st.session_state.history.insert(0, {
                     'email': result,
@@ -535,47 +515,24 @@ Notes to rewrite:
                 if len(st.session_state.history) > 10:
                     st.session_state.history = st.session_state.history[:10]
                 
-                # Display result
                 st.markdown("### ✅ Your Professional Email")
-                st.markdown(f'<div class="result-box"><div class="result-text">{result}</div></div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="background:#fff; padding:20px; border-radius:12px; border:2px solid #66bb6a;"><div style="color:#1b5e20; font-size:15px; line-height:1.6; white-space: pre-wrap;">{result}</div></div>', unsafe_allow_html=True)
                 
-                # Copy to Clipboard
                 st.markdown("### 📋 Copy Email")
                 st.code(result, language=None)
                 st.info("👆 Tap and hold above text to copy")
                 
-                # Share buttons
                 st.markdown("### 📤 Share Your Email")
                 col1, col2 = st.columns(2)
                 
                 with col1:
                     whatsapp_text = urllib.parse.quote(result)
-                    st.markdown(f'''
-                        <a href="https://wa.me/?text={whatsapp_text}" target="_blank" 
-                           style="text-decoration:none; display:block;">
-                            <div style="background-color:#25D366; color:white; border:none; 
-                                   padding:14px; border-radius:10px; text-align:center; 
-                                   cursor:pointer; font-weight:bold; font-size:15px;
-                                   box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                                📱 WhatsApp
-                            </div>
-                        </a>
-                    ''', unsafe_allow_html=True)
+                    st.markdown(f'<a href="https://wa.me/?text={whatsapp_text}" target="_blank" style="text-decoration:none; display:block;"><div style="background:#25D366; color:white; padding:14px; border-radius:10px; text-align:center; cursor:pointer; font-weight:bold; font-size:15px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">📱 WhatsApp</div></a>', unsafe_allow_html=True)
                 
                 with col2:
                     email_subject = urllib.parse.quote("Professional Email")
                     email_body = urllib.parse.quote(result)
-                    st.markdown(f'''
-                        <a href="mailto:?subject={email_subject}&body={email_body}" 
-                           style="text-decoration:none; display:block;">
-                            <div style="background-color:#EA4335; color:white; border:none; 
-                                   padding:14px; border-radius:10px; text-align:center; 
-                                   cursor:pointer; font-weight:bold; font-size:15px;
-                                   box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                                📧 Email
-                            </div>
-                        </a>
-                    ''', unsafe_allow_html=True)
+                    st.markdown(f'<a href="mailto:?subject={email_subject}&body={email_body}" style="text-decoration:none; display:block;"><div style="background:#EA4335; color:white; padding:14px; border-radius:10px; text-align:center; cursor:pointer; font-weight:bold; font-size:15px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">📧 Email</div></a>', unsafe_allow_html=True)
                 
                 st.balloons()
                 
@@ -586,56 +543,12 @@ Notes to rewrite:
 # Footer
 st.markdown("---")
 
-# Show AI Provider at bottom
 ai_names = {
     "groq": "🚀 Groq (LLaMA 3.3)",
     "huggingface": "🤗 Hugging Face (LLaMA 3)",
     "gemini": "✨ Google Gemini"
 }
 if 'ai_provider' in locals():
-    st.markdown(f"""
-    <div style='background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); 
-         padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 15px;
-         border: 2px solid #66bb6a;'>
-        <div style='font-weight: bold; color: #1b5e20; font-size: 14px;'>
-            AI Provider: {ai_names.get(ai_provider, ai_provider)}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f'<div style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 15px; border: 2px solid #66bb6a;"><div style="font-weight: bold; color: #1b5e20; font-size: 14px;">AI Provider: {ai_names.get(ai_provider, ai_provider)}</div></div>', unsafe_allow_html=True)
 
-# Stats Section in Footer
-st.markdown("### 📊 Session Statistics")
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.markdown(f"""
-        <div style="background: white; padding: 15px; border-radius: 10px; text-align: center; border: 2px solid #66bb6a;">
-            <div style="font-size: 24px; font-weight: bold; color: #2e7d32;">{st.session_state.emails_generated}</div>
-            <div style="font-size: 12px; color: #666;">Emails Generated</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-with col2:
-    session_duration = datetime.datetime.now() - st.session_state.session_start_time
-    duration_mins = int(session_duration.total_seconds() / 60)
-    st.markdown(f"""
-        <div style="background: white; padding: 15px; border-radius: 10px; text-align: center; border: 2px solid #66bb6a;">
-            <div style="font-size: 24px; font-weight: bold; color: #2e7d32;">{duration_mins}</div>
-            <div style="font-size: 12px; color: #666;">Minutes Active</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-with col3:
-    st.markdown(f"""
-        <div style="background: white; padding: 15px; border-radius: 10px; text-align: center; border: 2px solid #66bb6a;">
-            <div style="font-size: 24px; font-weight: bold; color: #2e7d32;">{len(st.session_state.history)}</div>
-            <div style="font-size: 12px; color: #666;">In History</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-st.markdown(
-    f"<div style='text-align: center; color: #666; padding: 20px; font-size: 14px;'>"
-    f"Made with 💚 by Vicky | Powered by {ai_provider.upper()} AI"
-    "</div>", 
-    unsafe_allow_html=True
-)
+st.markdown("<div style='text-align: center; color: #666; padding: 20px; font-size: 14px;'>ProMailer AI - Built with 💚 by Bhushan</div>", unsafe_allow_html=True)
