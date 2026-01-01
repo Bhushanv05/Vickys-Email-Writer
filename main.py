@@ -36,9 +36,9 @@ with st.sidebar:
     # Share App Link Button
     st.markdown("---")
     st.markdown("### 📲 Share this App")
-    app_link = "https://promailer-ai.streamlit.app/"  # Update with your actual URL
+    app_link = "https://vicky-email-writer.streamlit.app/"
     share_msg = urllib.parse.quote(
-        f"Hey! Check out ProMailer AI - It converts rough notes into professional emails. Type or speak in any language: {app_link}"
+        f"Hey! Check out Vicky's AI Email Writer. It converts Marathi/English voice notes into professional emails: {app_link}"
     )
     
     # WhatsApp Share Button
@@ -95,8 +95,8 @@ with st.sidebar:
 
     # Signature and Stats
     st.markdown("---")
-    st.markdown("### 💚 ProMailer AI")
-    st.caption("Built by Bhushan | Powered by Gemini AI")
+    st.markdown("### 💚 Built by Vicky")
+    st.caption("Powered by Google Gemini AI")
     
     # Session Stats
     st.markdown("---")
@@ -184,29 +184,35 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 5. Initialize Gemini AI
+# 5. Initialize AI Client
 try:
-    # Try Gemini first (recommended)
-    if "GEMINI_API_KEY" in st.secrets:
-        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        model = genai.GenerativeModel('gemini-1.5-flash-latest')
-        ai_provider = "gemini"
-    # Fallback to Groq if Gemini not available
-    elif "GROQ_API_KEY" in st.secrets:
+    # Check which API keys are available
+    has_groq = "GROQ_API_KEY" in st.secrets
+    has_gemini = "GEMINI_API_KEY" in st.secrets
+    
+    if has_groq:
         from groq import Groq
         client = Groq(api_key=st.secrets["GROQ_API_KEY"])
         ai_provider = "groq"
+        st.success("✅ Connected to Groq AI")
+    elif has_gemini:
+        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        model = genai.GenerativeModel('gemini-pro')
+        ai_provider = "gemini"
+        st.success("✅ Connected to Gemini AI")
     else:
-        st.error("⚠️ Please configure GEMINI_API_KEY or GROQ_API_KEY in Streamlit Secrets.")
-        st.info("Get free Gemini API key: https://aistudio.google.com/app/apikey")
+        st.error("⚠️ Please configure GROQ_API_KEY or GEMINI_API_KEY in Streamlit Secrets.")
+        st.info("Get free Groq API key: https://console.groq.com/keys")
         st.stop()
+        
 except Exception as e:
     st.error(f"⚠️ API Configuration Error: {str(e)}")
+    st.info("Please check your API keys in Settings → Secrets")
     st.stop()
 
 # 6. Main Application Content
-st.title("✉️ ProMailer AI")
-st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 16px; font-weight: 600;'>⌨️ Type | 🎤 Speak | 📸 Photo → Professional Emails!</p>", unsafe_allow_html=True)
+st.title("✉️ Vicky Email Writer")
+st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 16px; font-weight: 600;'>⌨️ Type OR 🎤 Speak → Get Professional Emails!</p>", unsafe_allow_html=True)
 
 # Language Selection
 st.markdown("### 🌐 Language Settings")
@@ -356,14 +362,14 @@ with st.expander("💡 See Examples - How it works"):
         </div>
         """, unsafe_allow_html=True)
 
-# Voice Input (only works with Groq for transcription)
+# Voice Input
 voice_text = ""
 photo_text = ""
 
 # Check if we have Groq for voice
-has_groq = "GROQ_API_KEY" in st.secrets or ai_provider == "groq"
+has_groq = "GROQ_API_KEY" in st.secrets
 
-if has_groq and ai_provider == "groq":
+if has_groq:
     st.markdown("---")
     st.markdown("#### 🎤 Option 1: Record Your Voice")
     audio_input = mic_recorder(
@@ -393,9 +399,9 @@ if has_groq and ai_provider == "groq":
             except Exception as e:
                 st.error(f"❌ Voice error: {str(e)}")
                 voice_text = ""
-elif not has_groq:
+else:
     st.markdown("---")
-    st.info("💡 Voice recording feature: Add GROQ_API_KEY in settings to enable voice input.")
+    st.info("💡 Voice recording: Add GROQ_API_KEY in settings to enable.")
 
 # Photo/Image Input
 st.markdown("---")
@@ -421,40 +427,10 @@ uploaded_file = st.file_uploader(
 )
 
 if uploaded_file is not None:
-    # Display the image
     st.image(uploaded_file, caption="Your uploaded image", use_container_width=True)
-    
-    with st.spinner("🔍 Extracting text from image..."):
-        try:
-            # Use Gemini Vision API if available
-            if ai_provider == "gemini":
-                # Reset file pointer
-                uploaded_file.seek(0)
-                
-                # Prepare image for Gemini
-                from PIL import Image
-                img = Image.open(uploaded_file)
-                
-                # Use Gemini's vision capability
-                vision_model = genai.GenerativeModel('gemini-1.5-flash-latest')
-                response = vision_model.generate_content([
-                    "Extract all text from this image. Transcribe exactly what you see, including handwritten text. Just return the text, no extra explanation:",
-                    img
-                ])
-                photo_text = response.text
-                st.success("✅ Text extracted from image!")
-                st.info(f"📝 Extracted text: {photo_text[:100]}..." if len(photo_text) > 100 else f"📝 Extracted text: {photo_text}")
-                
-            else:
-                st.warning("⚠️ Image text extraction requires GEMINI_API_KEY.")
-                st.info("💡 Please add GEMINI_API_KEY to your Streamlit Secrets to use photo upload.")
-                
-        except Exception as e:
-            st.error(f"❌ Image processing error: {str(e)}")
-            st.info("💡 Please try:")
-            st.info("1. Upload a clearer image")
-            st.info("2. Check your GEMINI_API_KEY")
-            st.info("3. Or type the text manually below")
+    st.warning("⚠️ Photo text extraction requires GEMINI_API_KEY.")
+    st.info("💡 For now, please type the text from the photo manually in the box below.")
+    st.info("To enable photo upload: Add GEMINI_API_KEY in Streamlit Secrets")
 
 st.markdown("#### ⌨️ Option 3: Type Your Message")
 
@@ -512,10 +488,8 @@ Notes to rewrite:
 {draft}"""
 
                 # Call API based on provider
-                if ai_provider == "gemini":
-                    response = model.generate_content(prompt)
-                    result = response.text
-                else:  # groq
+                if ai_provider == "groq":
+                    # Use Groq
                     response = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
                         messages=[{"role": "user", "content": prompt}],
@@ -523,6 +497,14 @@ Notes to rewrite:
                         max_tokens=1024
                     )
                     result = response.choices[0].message.content
+                    
+                elif ai_provider == "gemini":
+                    # Use Gemini
+                    response = model.generate_content(prompt)
+                    result = response.text
+                else:
+                    st.error("No AI provider configured")
+                    return
                 
                 # Save to history
                 timestamp = datetime.datetime.now().strftime("%d/%m %H:%M")
@@ -620,8 +602,7 @@ with col3:
 
 st.markdown(
     f"<div style='text-align: center; color: #666; padding: 20px; font-size: 14px;'>"
-    f"ProMailer AI - Built with 💚 by Bhushan | Powered by {ai_provider.upper()} AI"
+    f"Made with 💚 by Vicky | Powered by {ai_provider.upper()} AI"
     "</div>", 
     unsafe_allow_html=True
 )
-
