@@ -4,19 +4,22 @@ import urllib.parse
 import datetime
 from streamlit_mic_recorder import mic_recorder
 
-# Force cache clear and set page config
+# Force complete cache clear and set page config
 st.set_page_config(
-    page_title="ProMailer AI", 
+    page_title="ProMailer AI v2.0.1", 
     page_icon="✉️", 
     layout="centered",
     initial_sidebar_state="expanded"
 )
 
-# Clear cache on load to ensure fresh content
-if 'cache_cleared' not in st.session_state:
-    st.cache_data.clear()
-    st.cache_resource.clear()
-    st.session_state.cache_cleared = True
+# CRITICAL: Clear ALL caches to force fresh load
+st.cache_data.clear()
+st.cache_resource.clear()
+
+# Force rerun marker
+if 'app_version' not in st.session_state:
+    st.session_state.app_version = "2.0.1"
+    st.rerun()
 
 # 2. Initialize Session State
 if 'history' not in st.session_state:
@@ -27,7 +30,7 @@ if 'current_email' not in st.session_state:
 # 3. Sidebar Implementation
 with st.sidebar:
     st.markdown("# 📖 ProMailer AI")
-    st.caption("v2.0.0")  # Version number
+    st.caption("v2.0.1 - Clean Version")  # Version number
     st.markdown("**✍️ Type OR 🎤 Speak**")
     st.caption("⌨️ Type rough notes → Professional email")
     st.caption("🎤 Speak casually → Professional email")
