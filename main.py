@@ -33,9 +33,9 @@ with st.sidebar:
     # Share App Link Button
     st.markdown("---")
     st.markdown("### 📲 Share this App")
-    app_link = "https://promailer-ai.streamlit.app/"  # Update with your actual URL
+    app_link = "https://vicky-email-writer.streamlit.app/"
     share_msg = urllib.parse.quote(
-        f"Hey! Check out ProMailer AI - Converts rough notes into professional emails. Type or speak in any language: {app_link}"
+        f"Hey! Check out Vicky's AI Email Writer. It converts Marathi/English voice notes into professional emails: {app_link}"
     )
     
     # WhatsApp Share Button
@@ -92,8 +92,8 @@ with st.sidebar:
 
     # Signature and Stats
     st.markdown("---")
-    st.markdown("### 💚 ProMailer AI")
-    st.caption("Built by Bhushan | Powered by Gemini AI")
+    st.markdown("### 💚 Built by Vicky")
+    st.caption("Powered by Google Gemini AI")
     
     # Session Stats
     st.markdown("---")
@@ -215,17 +215,8 @@ except Exception as e:
     st.stop()
 
 # 6. Main Application Content
-st.title("✉️ ProMailer AI")
-st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 16px; font-weight: 600;'>⌨️ Type OR 🎤 Speak → Professional Emails!</p>", unsafe_allow_html=True)
-
-# Show which AI provider is active
-ai_names = {
-    "groq": "🚀 Groq (LLaMA 3.3)",
-    "huggingface": "🤗 Hugging Face (LLaMA 3)",
-    "gemini": "✨ Google Gemini"
-}
-if 'ai_provider' in locals():
-    st.success(f"AI Provider: {ai_names.get(ai_provider, ai_provider)}")
+st.title("✉️ Vicky Email Writer")
+st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 16px; font-weight: 600;'>⌨️ Type OR 🎤 Speak → Get Professional Emails!</p>", unsafe_allow_html=True)
 
 # Language Selection
 st.markdown("### 🌐 Language Settings")
@@ -592,6 +583,23 @@ Notes to rewrite:
 # Footer
 st.markdown("---")
 
+# Show AI Provider at bottom
+ai_names = {
+    "groq": "🚀 Groq (LLaMA 3.3)",
+    "huggingface": "🤗 Hugging Face (LLaMA 3)",
+    "gemini": "✨ Google Gemini"
+}
+if 'ai_provider' in locals():
+    st.markdown(f"""
+    <div style='background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); 
+         padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 15px;
+         border: 2px solid #66bb6a;'>
+        <div style='font-weight: bold; color: #1b5e20; font-size: 14px;'>
+            AI Provider: {ai_names.get(ai_provider, ai_provider)}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
 # Stats Section in Footer
 st.markdown("### 📊 Session Statistics")
 col1, col2, col3 = st.columns(3)
@@ -624,7 +632,7 @@ with col3:
 
 st.markdown(
     f"<div style='text-align: center; color: #666; padding: 20px; font-size: 14px;'>"
-    f"ProMailer AI - Built with 💚 by Bhushan | Powered by {ai_provider.upper()} AI"
+    f"Made with 💚 by Vicky | Powered by {ai_provider.upper()} AI"
     "</div>", 
     unsafe_allow_html=True
 )
