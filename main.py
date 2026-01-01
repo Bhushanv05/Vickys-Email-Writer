@@ -3,7 +3,6 @@ import os
 import urllib.parse
 import datetime
 from streamlit_mic_recorder import mic_recorder
-import PIL.Image
 
 # 1. Page Configuration
 st.set_page_config(
@@ -26,18 +25,17 @@ if 'session_start_time' not in st.session_state:
 # 3. Sidebar Implementation
 with st.sidebar:
     st.markdown("# 📖 App Menu")
-    st.markdown("**✍️ Type | 🎤 Speak | 📸 Photo**")
+    st.markdown("**✍️ Type OR 🎤 Speak**")
     st.caption("⌨️ Type rough notes → Professional email")
     st.caption("🎤 Speak casually → Professional email")
-    st.caption("📸 Photo of notes → Professional email")
     st.caption("🌍 Works in English, Marathi, Hindi")
 
     # Share App Link Button
     st.markdown("---")
     st.markdown("### 📲 Share this App")
-    app_link = "https://vicky-email-writer.streamlit.app/"
+    app_link = "https://promailer-ai.streamlit.app/"  # Update with your actual URL
     share_msg = urllib.parse.quote(
-        f"Hey! Check out Vicky's AI Email Writer. It converts Marathi/English voice notes into professional emails: {app_link}"
+        f"Hey! Check out ProMailer AI - Converts rough notes into professional emails. Type or speak in any language: {app_link}"
     )
     
     # WhatsApp Share Button
@@ -94,8 +92,8 @@ with st.sidebar:
 
     # Signature and Stats
     st.markdown("---")
-    st.markdown("### 💚 Built by Vicky")
-    st.caption("Powered by Google Gemini AI")
+    st.markdown("### 💚 ProMailer AI")
+    st.caption("Built by Bhushan | Powered by Gemini AI")
     
     # Session Stats
     st.markdown("---")
@@ -206,8 +204,8 @@ except Exception as e:
     st.stop()
 
 # 6. Main Application Content
-st.title("✉️ Vicky Email Writer")
-st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 16px; font-weight: 600;'>⌨️ Type OR 🎤 Speak → Get Professional Emails!</p>", unsafe_allow_html=True)
+st.title("✉️ ProMailer AI")
+st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 16px; font-weight: 600;'>⌨️ Type OR 🎤 Speak → Professional Emails!</p>", unsafe_allow_html=True)
 
 # Language Selection
 st.markdown("### 🌐 Language Settings")
@@ -244,8 +242,8 @@ st.markdown("""
     <div style='font-size: 13px; color: #333; line-height: 1.8;'>
         ✅ <strong>Type</strong> rough text → Get professional email<br>
         ✅ <strong>Speak</strong> your message → Get professional email<br>
-        ✅ <strong>Photo</strong> of notes/whiteboard → Get professional email<br>
-        ✅ <strong>Multi-language</strong> support (English, Marathi, Hindi)
+        ✅ <strong>Multi-language</strong> support (English, Marathi, Hindi)<br>
+        ✅ <strong>Choose tone & length</strong> for your email
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -254,8 +252,8 @@ st.markdown("""
 st.markdown("---")
 st.markdown("### ✍️ Step 1: Choose Your Input Method")
 
-# Input method selector buttons (interactive)
-col1, col2, col3 = st.columns(3)
+# Input method selector buttons - Only Type and Speak
+col1, col2 = st.columns(2)
 
 with col1:
     if st.button("⌨️ Type", key="btn_type", use_container_width=True, help="Type your message"):
@@ -264,17 +262,13 @@ with col1:
 with col2:
     if st.button("🎤 Speak", key="btn_speak", use_container_width=True, help="Record voice"):
         st.session_state.input_method = "speak"
-        
-with col3:
-    if st.button("📸 Photo", key="btn_photo", use_container_width=True, help="Upload image"):
-        st.session_state.input_method = "photo"
 
 # Initialize input method if not set
 if 'input_method' not in st.session_state:
     st.session_state.input_method = "type"
 
 # Show current selection
-method_labels = {"type": "⌨️ Typing", "speak": "🎤 Speaking", "photo": "📸 Photo Upload"}
+method_labels = {"type": "⌨️ Typing", "speak": "🎤 Speaking"}
 st.info(f"📍 Current mode: **{method_labels.get(st.session_state.input_method, 'Typing')}**")
 
 st.markdown("<br>", unsafe_allow_html=True)
@@ -359,7 +353,6 @@ with st.expander("💡 See Examples - How it works"):
 
 # Voice Input
 voice_text = ""
-photo_text = ""
 
 # Check if we have Groq for voice
 has_groq = "GROQ_API_KEY" in st.secrets
@@ -398,43 +391,14 @@ else:
     st.markdown("---")
     st.info("💡 Voice recording: Add GROQ_API_KEY in settings to enable.")
 
-# Photo/Image Input
-st.markdown("---")
-st.markdown("#### 📸 Option 2: Upload or Capture Photo")
-st.markdown("""
-<div style='background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 100%); 
-     padding: 20px; border-radius: 12px; border: 2px solid #2196F3; 
-     text-align: center; margin: 15px 0;'>
-    <div style='font-size: 48px; margin-bottom: 10px;'>📸</div>
-    <div style='font-weight: bold; color: #1565c0; font-size: 16px; margin-bottom: 8px;'>
-        Upload Photo of Your Notes
-    </div>
-    <div style='color: #333; font-size: 13px; margin-bottom: 15px;'>
-        Handwritten notes, whiteboard, documents - we'll extract the text!
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-uploaded_file = st.file_uploader(
-    "📤 Choose an image file", 
-    type=['png', 'jpg', 'jpeg'],
-    help="Upload a clear photo of your notes for best results"
-)
-
-if uploaded_file is not None:
-    st.image(uploaded_file, caption="Your uploaded image", use_container_width=True)
-    st.warning("⚠️ Photo text extraction requires GEMINI_API_KEY.")
-    st.info("💡 For now, please type the text from the photo manually in the box below.")
-    st.info("To enable photo upload: Add GEMINI_API_KEY in Streamlit Secrets")
-
-st.markdown("#### ⌨️ Option 3: Type Your Message")
+st.markdown("#### ⌨️ Option 2: Type Your Message")
 
 # Text Input
 draft = st.text_area(
     f"📝 Your notes in {input_lang}:", 
-    value=photo_text or voice_text or st.session_state.current_email, 
+    value=voice_text or st.session_state.current_email, 
     height=150,
-    placeholder=f"Type, speak, or upload a photo of your message in {input_lang}...",
+    placeholder=f"Type or speak your message in {input_lang}...",
     help=f"Enter your draft in {input_lang}, we'll convert it to {target_lang}"
 )
 
@@ -598,7 +562,7 @@ with col3:
 
 st.markdown(
     f"<div style='text-align: center; color: #666; padding: 20px; font-size: 14px;'>"
-    f"Made with 💚 by Vicky | Powered by {ai_provider.upper()} AI"
+    f"ProMailer AI - Built with 💚 by Bhushan | Powered by {ai_provider.upper()} AI"
     "</div>", 
     unsafe_allow_html=True
 )
