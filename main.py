@@ -2,7 +2,6 @@ import streamlit as st
 import os
 import urllib.parse
 import datetime
-import google.generativeai as genai
 from streamlit_mic_recorder import mic_recorder
 import PIL.Image
 
@@ -36,9 +35,9 @@ with st.sidebar:
     # Share App Link Button
     st.markdown("---")
     st.markdown("### 📲 Share this App")
-    app_link = "https://vicky-email-writer.streamlit.app/"
+    app_link = "https://promailer-ai.streamlit.app/"  # Update with your actual URL
     share_msg = urllib.parse.quote(
-        f"Hey! Check out Vicky's AI Email Writer. It converts Marathi/English voice notes into professional emails: {app_link}"
+        f"Hey! Check out ProMailer AI - It converts rough notes into professional emails. Type or speak in any language: {app_link}"
     )
     
     # WhatsApp Share Button
@@ -95,8 +94,8 @@ with st.sidebar:
 
     # Signature and Stats
     st.markdown("---")
-    st.markdown("### 💚 Built by Vicky")
-    st.caption("Powered by Google Gemini AI")
+    st.markdown("### 💚 ProMailer AI")
+    st.caption("Built by Bhushan | Powered by Gemini AI")
     
     # Session Stats
     st.markdown("---")
@@ -186,33 +185,29 @@ st.markdown("""
 
 # 5. Initialize AI Client
 try:
-    # Check which API keys are available
-    has_groq = "GROQ_API_KEY" in st.secrets
-    has_gemini = "GEMINI_API_KEY" in st.secrets
-    
-    if has_groq:
+    # Try to get Groq API key (import only when needed)
+    if "GROQ_API_KEY" in st.secrets:
         from groq import Groq
-        client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+        api_key = st.secrets["GROQ_API_KEY"]
+        client = Groq(api_key=api_key)
         ai_provider = "groq"
-        st.success("✅ Connected to Groq AI")
-    elif has_gemini:
+    # Try Gemini if Groq not available
+    elif "GEMINI_API_KEY" in st.secrets:
+        import google.generativeai as genai
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
         model = genai.GenerativeModel('gemini-pro')
         ai_provider = "gemini"
-        st.success("✅ Connected to Gemini AI")
     else:
         st.error("⚠️ Please configure GROQ_API_KEY or GEMINI_API_KEY in Streamlit Secrets.")
         st.info("Get free Groq API key: https://console.groq.com/keys")
         st.stop()
-        
 except Exception as e:
     st.error(f"⚠️ API Configuration Error: {str(e)}")
-    st.info("Please check your API keys in Settings → Secrets")
     st.stop()
 
 # 6. Main Application Content
-st.title("✉️ Vicky Email Writer")
-st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 16px; font-weight: 600;'>⌨️ Type OR 🎤 Speak → Get Professional Emails!</p>", unsafe_allow_html=True)
+st.title("✉️ ProMailer AI")
+st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 16px; font-weight: 600;'>⌨️ Type | 🎤 Speak | 📸 Photo → Professional Emails!</p>", unsafe_allow_html=True)
 
 # Language Selection
 st.markdown("### 🌐 Language Settings")
@@ -602,7 +597,7 @@ with col3:
 
 st.markdown(
     f"<div style='text-align: center; color: #666; padding: 20px; font-size: 14px;'>"
-    f"Made with 💚 by Vicky | Powered by {ai_provider.upper()} AI"
+    f"ProMailer AI - Built with 💚 by Bhushan | Powered by {ai_provider.upper()} AI"
     "</div>", 
     unsafe_allow_html=True
 )
