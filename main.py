@@ -4,7 +4,7 @@ import urllib.parse
 import datetime
 from streamlit_mic_recorder import mic_recorder
 
-# 1. Page Configuration
+# Force cache clear and set page config
 st.set_page_config(
     page_title="ProMailer AI", 
     page_icon="✉️", 
@@ -12,19 +12,22 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Clear cache on load to ensure fresh content
+if 'cache_cleared' not in st.session_state:
+    st.cache_data.clear()
+    st.cache_resource.clear()
+    st.session_state.cache_cleared = True
+
 # 2. Initialize Session State
 if 'history' not in st.session_state:
     st.session_state.history = []
 if 'current_email' not in st.session_state:
     st.session_state.current_email = ""
-if 'emails_generated' not in st.session_state:
-    st.session_state.emails_generated = 0
-if 'session_start_time' not in st.session_state:
-    st.session_state.session_start_time = datetime.datetime.now()
 
 # 3. Sidebar Implementation
 with st.sidebar:
-    st.markdown("# 📖 App Menu")
+    st.markdown("# 📖 ProMailer AI")
+    st.caption("v2.0.0")  # Version number
     st.markdown("**✍️ Type OR 🎤 Speak**")
     st.caption("⌨️ Type rough notes → Professional email")
     st.caption("🎤 Speak casually → Professional email")
@@ -525,9 +528,6 @@ Notes to rewrite:
                     'email': result,
                     'timestamp': timestamp
                 })
-                
-                # Increment email counter
-                st.session_state.emails_generated += 1
                 
                 if len(st.session_state.history) > 10:
                     st.session_state.history = st.session_state.history[:10]
