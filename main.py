@@ -183,22 +183,33 @@ st.markdown("""
 
 # 5. Initialize AI Client
 try:
-    # Try to get Groq API key (import only when needed)
+    # Priority 1: Try Groq first (fastest and most reliable)
     if "GROQ_API_KEY" in st.secrets:
         from groq import Groq
         api_key = st.secrets["GROQ_API_KEY"]
         client = Groq(api_key=api_key)
         ai_provider = "groq"
-    # Try Gemini if Groq not available
+        
+    # Priority 2: Try Hugging Face if Groq not available
+    elif "HUGGINGFACE_API_KEY" in st.secrets:
+        import requests
+        hf_api_key = st.secrets["HUGGINGFACE_API_KEY"]
+        ai_provider = "huggingface"
+        
+    # Priority 3: Try Gemini as last resort
     elif "GEMINI_API_KEY" in st.secrets:
         import google.generativeai as genai
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
         model = genai.GenerativeModel('gemini-pro')
         ai_provider = "gemini"
+        
     else:
-        st.error("⚠️ Please configure GROQ_API_KEY or GEMINI_API_KEY in Streamlit Secrets.")
+        st.error("⚠️ Please configure at least one API key in Streamlit Secrets.")
+        st.info("Supported APIs: GROQ_API_KEY (recommended), HUGGINGFACE_API_KEY, or GEMINI_API_KEY")
         st.info("Get free Groq API key: https://console.groq.com/keys")
+        st.info("Get free Hugging Face key: https://huggingface.co/settings/tokens")
         st.stop()
+        
 except Exception as e:
     st.error(f"⚠️ API Configuration Error: {str(e)}")
     st.stop()
@@ -206,6 +217,15 @@ except Exception as e:
 # 6. Main Application Content
 st.title("✉️ ProMailer AI")
 st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 16px; font-weight: 600;'>⌨️ Type OR 🎤 Speak → Professional Emails!</p>", unsafe_allow_html=True)
+
+# Show which AI provider is active
+ai_names = {
+    "groq": "🚀 Groq (LLaMA 3.3)",
+    "huggingface": "🤗 Hugging Face (LLaMA 3)",
+    "gemini": "✨ Google Gemini"
+}
+if 'ai_provider' in locals():
+    st.success(f"AI Provider: {ai_names.get(ai_provider, ai_provider)}")
 
 # Language Selection
 st.markdown("### 🌐 Language Settings")
@@ -359,7 +379,15 @@ has_groq = "GROQ_API_KEY" in st.secrets
 
 if has_groq:
     st.markdown("---")
-    st.markdown("#### 🎤 Option 1: Record Your Voice")
+    st.markdown("""
+    <div style='background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%); 
+         padding: 15px; border-radius: 10px; border-left: 4px solid #2e7d32; margin: 10px 0;'>
+        <div style='font-size: 18px; font-weight: bold; color: #1b5e20;'>
+            🎤 Option 1: Record Your Voice
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     audio_input = mic_recorder(
         start_prompt="🎤 Click to Start Recording", 
         stop_prompt="🛑 Stop Recording", 
@@ -391,7 +419,15 @@ else:
     st.markdown("---")
     st.info("💡 Voice recording: Add GROQ_API_KEY in settings to enable.")
 
-st.markdown("#### ⌨️ Option 2: Type Your Message")
+st.markdown("---")
+st.markdown("""
+<div style='background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%); 
+     padding: 15px; border-radius: 10px; border-left: 4px solid #2e7d32; margin: 10px 0;'>
+    <div style='font-size: 18px; font-weight: bold; color: #1b5e20;'>
+        ⌨️ Option 2: Type Your Message
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # Text Input
 draft = st.text_area(
@@ -448,7 +484,7 @@ Notes to rewrite:
 
                 # Call API based on provider
                 if ai_provider == "groq":
-                    # Use Groq
+                    # Use Groq (Priority 1)
                     response = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
                         messages=[{"role": "user", "content": prompt}],
@@ -457,11 +493,37 @@ Notes to rewrite:
                     )
                     result = response.choices[0].message.content
                     
+                elif ai_provider == "huggingface":
+                    # Use Hugging Face (Priority 2)
+                    import requests
+                    
+                    API_URL = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
+                    headers = {"Authorization": f"Bearer {hf_api_key}"}
+                    
+                    payload = {
+                        "inputs": prompt,
+                        "parameters": {
+                            "max_new_tokens": 1024,
+                            "temperature": 0.7,
+                            "return_full_text": False
+                        }
+                    }
+                    
+                    response = requests.post(API_URL, headers=headers, json=payload)
+                    
+                    if response.status_code == 200:
+                        result = response.json()[0]["generated_text"]
+                    else:
+                        st.error(f"Hugging Face API Error: {response.status_code}")
+                        st.info("Falling back to simpler processing...")
+                        result = f"Subject: Professional Email\n\nDear Recipient,\n\n{draft}\n\nBest regards"
+                    
                 elif ai_provider == "gemini":
-                    # Use Gemini
+                    # Use Gemini (Priority 3)
                     import google.generativeai as genai
                     response = model.generate_content(prompt)
                     result = response.text
+                    
                 else:
                     st.error("❌ No AI provider configured")
                     st.stop()
