@@ -1,568 +1,583 @@
 import streamlit as st
-import os
-import urllib.parse
+import requests
 import datetime
+import urllib.parse
 from streamlit_mic_recorder import mic_recorder
+import os
+import time
 
-# 1. Page Configuration
+# Page Configuration
 st.set_page_config(
-    page_title="ProMailer AI", 
-    page_icon="✉️", 
+    page_title="ProMailer AI - Free Email Generator",
+    page_icon="✉️",
     layout="centered",
     initial_sidebar_state="expanded"
 )
 
-# 2. Initialize Session State
-if 'history' not in st.session_state:
-    st.session_state.history = []
-if 'current_email' not in st.session_state:
-    st.session_state.current_email = ""
-if 'emails_generated' not in st.session_state:
-    st.session_state.emails_generated = 0
-if 'session_start_time' not in st.session_state:
-    st.session_state.session_start_time = datetime.datetime.now()
-
-# 3. Sidebar Implementation
-with st.sidebar:
-    st.markdown("# 📖 App Menu")
-    st.markdown("**✍️ Type OR 🎤 Speak**")
-    st.caption("⌨️ Type rough notes → Professional email")
-    st.caption("🎤 Speak casually → Professional email")
-    st.caption("🌍 Works in English, Marathi, Hindi")
-
-    # Share App Link Button
-    st.markdown("---")
-    st.markdown("### 📲 Share this App")
-    app_link = "https://promailer-ai.streamlit.app/"  # Update with your actual URL
-    share_msg = urllib.parse.quote(
-        f"Hey! Check out ProMailer AI - Converts rough notes into professional emails. Type or speak in any language: {app_link}"
-    )
-    
-    # WhatsApp Share Button
-    st.markdown(f'''
-        <a href="https://wa.me/?text={share_msg}" target="_blank" 
-           style="text-decoration:none; display:block;">
-            <div style="background-color:#25D366; color:white; border:none; 
-                   padding:12px; border-radius:8px; text-align:center; 
-                   font-weight:bold; font-size:14px; cursor:pointer;
-                   margin-bottom:10px;">
-                📱 Share App via WhatsApp
-            </div>
-        </a>
-    ''', unsafe_allow_html=True)
-
-    # History Section
-    st.markdown("---")
-    st.markdown("### 📜 Recent History")
-    
-    if st.session_state.history:
-        # Add clear history button
-        if st.button("🗑️ Clear History", use_container_width=True):
-            st.session_state.history = []
-            st.rerun()
-        
-        for i, item in enumerate(st.session_state.history):
-            timestamp = item.get('timestamp', 'No date')
-            preview = item.get('email', '')[:40] + "..." if len(item.get('email', '')) > 40 else item.get('email', '')
-            
-            with st.expander(f"📧 Email {i+1} - {timestamp}"):
-                st.text_area("Email Content", value=item.get('email', ''), height=120, key=f"history_{i}", disabled=True, label_visibility="collapsed")
-                
-                # Individual email actions
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("📋 Use This", key=f"copy_{i}", use_container_width=True):
-                        st.session_state.current_email = item.get('email', '')
-                        st.success("✅ Loaded!")
-                        st.rerun()
-                with col2:
-                    whatsapp_text = urllib.parse.quote(item.get('email', ''))
-                    st.markdown(f'''
-                        <a href="https://wa.me/?text={whatsapp_text}" target="_blank" 
-                           style="text-decoration:none; display:block;">
-                            <div style="background-color:#25D366; color:white; border:none; 
-                                   padding:8px; border-radius:5px; text-align:center; 
-                                   cursor:pointer; font-size:12px; font-weight:bold;">
-                                📤 Share
-                            </div>
-                        </a>
-                    ''', unsafe_allow_html=True)
-    else:
-        st.info("📭 No history yet. Generate your first email!")
-
-    # Signature and Stats
-    st.markdown("---")
-    st.markdown("### 💚 ProMailer AI")
-    st.caption("Built by Bhushan | Powered by Gemini AI")
-    
-    # Session Stats
-    st.markdown("---")
-    st.markdown("### 📊 Your Session Stats")
-    
-    # Calculate session duration
-    session_duration = datetime.datetime.now() - st.session_state.session_start_time
-    duration_mins = int(session_duration.total_seconds() / 60)
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("📧 Emails Generated", st.session_state.emails_generated)
-    with col2:
-        st.metric("⏱️ Session Time", f"{duration_mins} min")
-    
-    # History count
-    st.metric("📜 History Count", len(st.session_state.history))
-
-# 4. Custom Styling (Mobile Optimized)
+# Custom CSS for better UI
 st.markdown("""
-    <style>
-    .stApp { 
-        background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e9 100%);
+<style>
+    /* Main background */
+    .stApp {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
     }
-    h1 { 
-        color: #1b5e20 !important; 
-        text-align: center; 
-        font-weight: 700 !important;
-        font-size: 2rem !important;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    
+    /* Main container */
+    .main-container {
+        background: white;
+        padding: 2rem;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        margin: 1rem auto;
+        max-width: 900px;
+    }
+    
+    /* Title styling */
+    .title {
+        text-align: center;
+        background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 2.8rem !important;
+        font-weight: 900 !important;
         margin-bottom: 0.5rem !important;
     }
-    h3 {
-        color: #2e7d32 !important;
-        font-weight: 600 !important;
+    
+    /* API status badges */
+    .api-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        margin: 2px;
     }
-    .stButton>button { 
-        background-color: #2e7d32 !important; 
-        color: white !important; 
-        border-radius: 10px !important; 
-        width: 100% !important; 
-        height: 3em !important;
-        font-weight: bold !important;
+    .api-badge.groq {
+        background: #10B981;
+        color: white;
+    }
+    .api-badge.hf {
+        background: #FFD700;
+        color: black;
+    }
+    
+    /* Feature cards */
+    .feature-card {
+        background: #f8f9ff;
+        padding: 1rem;
+        border-radius: 15px;
+        border: 2px solid #667eea;
+        margin: 0.5rem 0;
+        text-align: center;
+    }
+    
+    /* Buttons */
+    .stButton>button {
+        background: linear-gradient(45deg, #667eea, #764ba2) !important;
+        color: white !important;
         border: none !important;
+        padding: 12px 24px !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
         font-size: 16px !important;
+        transition: all 0.3s !important;
+        width: 100% !important;
     }
     .stButton>button:hover {
-        background-color: #1b5e20 !important;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+        transform: scale(1.05) !important;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4) !important;
     }
-    .stTextArea textarea {
-        border-radius: 10px !important;
-        border: 2px solid #66bb6a !important;
-        font-size: 16px !important;
-    }
-    .stRadio > label {
-        font-weight: 600 !important;
-        color: #2e7d32 !important;
-        font-size: 16px !important;
-    }
-    .stSelectbox > label {
-        font-weight: 600 !important;
-        color: #2e7d32 !important;
-        font-size: 14px !important;
-    }
+    
+    /* Result box */
     .result-box {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 12px;
-        border: 2px solid #66bb6a;
-        margin: 15px 0;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .result-text {
-        color: #1b5e20;
-        font-size: 15px;
-        line-height: 1.6;
+        background: #f8f9ff;
+        padding: 1.5rem;
+        border-radius: 15px;
+        border: 2px solid #667eea;
+        margin: 1rem 0;
         white-space: pre-wrap;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
-    hr {
-        margin: 20px 0 !important;
-        border-color: #66bb6a !important;
+    
+    /* Language badges */
+    .lang-badge {
+        display: inline-block;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        margin: 2px;
     }
-    </style>
-    """, unsafe_allow_html=True)
+</style>
+""", unsafe_allow_html=True)
 
-# 5. Initialize AI Client
-try:
-    # Try to get Groq API key (import only when needed)
-    if "GROQ_API_KEY" in st.secrets:
-        from groq import Groq
-        api_key = st.secrets["GROQ_API_KEY"]
-        client = Groq(api_key=api_key)
-        ai_provider = "groq"
-    # Try Gemini if Groq not available
-    elif "GEMINI_API_KEY" in st.secrets:
-        import google.generativeai as genai
-        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        model = genai.GenerativeModel('gemini-pro')
-        ai_provider = "gemini"
+# Initialize Session State
+def init_session_state():
+    defaults = {
+        'groq_key': "",
+        'hf_key': "",
+        'history': [],
+        'current_email': "",
+        'emails_generated': 0,
+        'voice_text': "",
+        'last_api_used': ""
+    }
+    
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+init_session_state()
+
+# Sidebar - API Configuration
+with st.sidebar:
+    st.markdown("## 🔑 API Configuration")
+    
+    # Groq API Section
+    st.markdown("### 1. Groq API (Primary)")
+    with st.expander("How to get Groq key", expanded=False):
+        st.markdown("""
+        **Free & Fast:**
+        1. Visit **[console.groq.com](https://console.groq.com)**
+        2. Sign up with Google/GitHub
+        3. Go to **API Keys**
+        4. Click **Create API Key**
+        5. Copy key (starts with `gsk_`)
+        """)
+    
+    groq_key = st.text_input(
+        "Groq API Key:",
+        value=st.session_state.groq_key,
+        type="password",
+        placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        help="Required for voice recording & best Marathi support"
+    )
+    
+    if groq_key:
+        st.session_state.groq_key = groq_key.strip()
+        st.success("✅ Groq key saved!")
+    
+    # Hugging Face API Section
+    st.markdown("---")
+    st.markdown("### 2. Hugging Face (Backup)")
+    with st.expander("How to get HF token", expanded=True):
+        st.markdown("""
+        **Free Backup API:**
+        1. Go to **[huggingface.co](https://huggingface.co)**
+        2. Sign up (free)
+        3. Click **profile picture** → **Settings**
+        4. Go to **Access Tokens**
+        5. Click **"New token"**
+        6. Name: `promailer-ai`
+        7. Role: **Read**
+        8. Click **Generate**
+        9. **Copy token** (starts with `hf_`)
+        
+        ⚠️ **Save immediately!** Won't show again.
+        """)
+    
+    hf_key = st.text_input(
+        "Hugging Face Token:",
+        value=st.session_state.hf_key,
+        type="password",
+        placeholder="hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        help="Free backup if Groq fails"
+    )
+    
+    if hf_key:
+        st.session_state.hf_key = hf_key.strip()
+        st.success("✅ Hugging Face token saved!")
+    
+    # API Status
+    st.markdown("---")
+    st.markdown("### 📊 API Status")
+    
+    status_col1, status_col2 = st.columns(2)
+    
+    with status_col1:
+        if st.session_state.groq_key:
+            st.markdown('<span class="api-badge groq">✅ Groq Ready</span>', unsafe_allow_html=True)
+        else:
+            st.markdown('<span style="color: orange">⚠️ Groq Needed</span>', unsafe_allow_html=True)
+    
+    with status_col2:
+        if st.session_state.hf_key:
+            st.markdown('<span class="api-badge hf">✅ HF Ready</span>', unsafe_allow_html=True)
+        else:
+            st.markdown('<span style="color: gray">ℹ️ HF Optional</span>', unsafe_allow_html=True)
+    
+    # Stats
+    st.markdown(f"**Emails Generated:** {st.session_state.emails_generated}")
+    st.markdown(f"**History Items:** {len(st.session_state.history)}")
+    
+    # History
+    st.markdown("---")
+    st.markdown("### 📜 Email History")
+    
+    if st.session_state.history:
+        for i, item in enumerate(st.session_state.history[:3]):
+            with st.expander(f"📧 {item.get('time', '')} - {item.get('api', '')}"):
+                st.text(item.get('email', '')[:120] + "...")
+                if st.button(f"Use This", key=f"use_{i}"):
+                    st.session_state.current_email = item.get('email', '')
+                    st.rerun()
+        
+        if st.button("Clear History", type="secondary"):
+            st.session_state.history = []
+            st.rerun()
     else:
-        st.error("⚠️ Please configure GROQ_API_KEY or GEMINI_API_KEY in Streamlit Secrets.")
-        st.info("Get free Groq API key: https://console.groq.com/keys")
-        st.stop()
-except Exception as e:
-    st.error(f"⚠️ API Configuration Error: {str(e)}")
-    st.stop()
+        st.info("No emails generated yet")
+    
+    # Footer
+    st.markdown("---")
+    st.caption("ProMailer AI v1.0")
+    st.caption("Made for Marathi/Hindi speakers")
 
-# 6. Main Application Content
-st.title("✉️ ProMailer AI")
-st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 16px; font-weight: 600;'>⌨️ Type OR 🎤 Speak → Professional Emails!</p>", unsafe_allow_html=True)
+# Main Content
+st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
-# Language Selection
-st.markdown("### 🌐 Language Settings")
-col1, col2 = st.columns(2)
+# Header
+st.markdown('<h1 class="title">✉️ ProMailer AI</h1>', unsafe_allow_html=True)
+st.markdown('<p style="text-align: center; color: #666; font-size: 1.1rem;">Turn Marathi/Hindi thoughts into professional emails instantly!</p>', unsafe_allow_html=True)
 
-with col1:
-    input_lang = st.selectbox(
-        "🎤 Input Language:", 
-        ["English", "Marathi", "Hindi", "Mix (Marathi+English)"],  # English first now
-        help="Language you'll speak or type in"
-    )
-
-with col2:
-    target_lang = st.selectbox(
-        "📧 Output Language:", 
-        ["English", "Marathi"],
-        help="Language for the final email"
-    )
-
-# Show helpful message
-if input_lang == "Marathi" and target_lang == "English":
-    st.success("✅ Perfect! Speak in Marathi, get email in English")
-elif input_lang == "English" and target_lang == "Marathi":
-    st.success("✅ Great! Speak in English, get email in Marathi")
-elif input_lang == "English" and target_lang == "English":
-    st.success("✅ Awesome! Convert rough English to professional English")
-elif input_lang != target_lang:
-    st.info(f"💡 Speak in {input_lang}, get email in {target_lang}")
-
-# Quick feature showcase
+# Language Support Badges
 st.markdown("""
-<div style='background: #fff3e0; padding: 12px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #ff9800;'>
-    <div style='font-weight: bold; color: #e65100; font-size: 14px; margin-bottom: 8px;'>💡 What This App Does:</div>
-    <div style='font-size: 13px; color: #333; line-height: 1.8;'>
-        ✅ <strong>Type</strong> rough text → Get professional email<br>
-        ✅ <strong>Speak</strong> your message → Get professional email<br>
-        ✅ <strong>Multi-language</strong> support (English, Marathi, Hindi)<br>
-        ✅ <strong>Choose tone & length</strong> for your email
-    </div>
+<div style="text-align: center; margin: 1rem 0;">
+    <span class="lang-badge">Marathi</span>
+    <span class="lang-badge">Hindi</span>
+    <span class="lang-badge">English</span>
+    <span class="lang-badge">Gujarati</span>
+    <span class="lang-badge">Tamil</span>
+    <span class="lang-badge">Telugu</span>
 </div>
 """, unsafe_allow_html=True)
 
-# Input Section
-st.markdown("---")
-st.markdown("### ✍️ Step 1: Choose Your Input Method")
-
-# Input method selector buttons - Only Type and Speak
-col1, col2 = st.columns(2)
-
+# Features
+col1, col2, col3 = st.columns(3)
 with col1:
-    if st.button("⌨️ Type", key="btn_type", use_container_width=True, help="Type your message"):
-        st.session_state.input_method = "type"
-
+    st.markdown('<div class="feature-card">🎤<br>Voice Input</div>', unsafe_allow_html=True)
 with col2:
-    if st.button("🎤 Speak", key="btn_speak", use_container_width=True, help="Record voice"):
-        st.session_state.input_method = "speak"
+    st.markdown('<div class="feature-card">🌍<br>Multi-Language</div>', unsafe_allow_html=True)
+with col3:
+    st.markdown('<div class="feature-card">⚡<br>Fast & Free</div>', unsafe_allow_html=True)
 
-# Initialize input method if not set
-if 'input_method' not in st.session_state:
-    st.session_state.input_method = "type"
+# Language Selection
+st.markdown("---")
+st.markdown("### 🌐 Choose Languages")
 
-# Show current selection
-method_labels = {"type": "⌨️ Typing", "speak": "🎤 Speaking"}
-st.info(f"📍 Current mode: **{method_labels.get(st.session_state.input_method, 'Typing')}**")
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-# Show examples based on language selection
-with st.expander("💡 See Examples - How it works"):
-    if input_lang == "Marathi" and target_lang == "English":
-        st.markdown("""
-        <div class="example-box">
-        <div class="example-title">🎤 Marathi Input Example:</div>
-        <div class="example-text">
-        "नमस्कार, मला उद्याच्या मीटिंग बद्दल सांगायचे आहे की मी येऊ शकणार नाही. मला काही महत्वाचे काम आहे."
-        </div>
-        </div>
-        
-        <div class="example-box">
-        <div class="example-title">📧 Professional English Email Output:</div>
-        <div class="example-text">
-        Subject: Unable to Attend Tomorrow's Meeting<br><br>
-        Dear Sir/Madam,<br><br>
-        I hope this email finds you well. I am writing to inform you that I will be unable to attend tomorrow's meeting due to some important prior commitments...
-        </div>
-        </div>
-        """, unsafe_allow_html=True)
-    elif input_lang == "English" and target_lang == "Marathi":
-        st.markdown("""
-        <div class="example-box">
-        <div class="example-title">🎤 English Input Example:</div>
-        <div class="example-text">
-        "Hi, I want to tell about tomorrow's meeting that I cannot come. I have some important work."
-        </div>
-        </div>
-        
-        <div class="example-box">
-        <div class="example-title">📧 Professional Marathi Email Output:</div>
-        <div class="example-text">
-        विषय: उद्याच्या बैठकीला उपस्थित राहू शकणार नाही<br><br>
-        आदरणीय महोदय/महोदया,<br><br>
-        मला तुम्हाला कळवायचे आहे की काही महत्त्वाच्या कामामुळे मी उद्याच्या बैठकीला उपस्थित राहू शकणार नाही...
-        </div>
-        </div>
-        """, unsafe_allow_html=True)
-    elif input_lang == "English" and target_lang == "English":
-        st.markdown("""
-        <div class="example-box">
-        <div class="example-title">🎤 Rough English Input:</div>
-        <div class="example-text">
-        "hey boss need leave tomorrow got some family work cant come office"
-        </div>
-        </div>
-        
-        <div class="example-box">
-        <div class="example-title">📧 Professional English Email Output:</div>
-        <div class="example-text">
-        Subject: Leave Request for Tomorrow<br><br>
-        Dear Sir,<br><br>
-        I hope this message finds you well. I am writing to request leave for tomorrow due to an important family commitment. I will be unable to attend the office.<br><br>
-        I apologize for any inconvenience this may cause and will ensure all pending work is completed upon my return.<br><br>
-        Thank you for your understanding.<br><br>
-        Best regards
-        </div>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div class="example-box">
-        <div class="example-title">Example:</div>
-        <div class="example-text">
-        "Boss, please approve my leave for next week. Family function."
-        </div>
-        </div>
-        
-        <div class="example-box">
-        <div class="example-title">Professional Email:</div>
-        <div class="example-text">
-        Subject: Leave Request for Next Week<br><br>
-        Dear Sir,<br><br>
-        I am writing to request leave for next week due to a family function...
-        </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-# Voice Input
-voice_text = ""
-
-# Check if we have Groq for voice
-has_groq = "GROQ_API_KEY" in st.secrets
-
-if has_groq:
-    st.markdown("---")
-    st.markdown("#### 🎤 Option 1: Record Your Voice")
-    audio_input = mic_recorder(
-        start_prompt="🎤 Click to Start Recording", 
-        stop_prompt="🛑 Stop Recording", 
-        key='recorder'
+col_lang1, col_lang2 = st.columns(2)
+with col_lang1:
+    input_lang = st.selectbox(
+        "🎤 Input Language:",
+        ["Marathi", "Hindi", "English", "Gujarati", "Tamil", "Telugu"],
+        index=0,
+        help="Speak or type in this language"
     )
 
-    if audio_input:
-        with st.spinner("🎧 Transcribing your voice..."):
-            try:
-                with open("temp.wav", "wb") as f:
-                    f.write(audio_input['bytes'])
-                
-                with open("temp.wav", "rb") as af:
-                    transcription = client.audio.transcriptions.create(
-                        file=("temp.wav", af.read()), 
-                        model="whisper-large-v3"
-                    )
-                    voice_text = transcription.text
-                
-                if os.path.exists("temp.wav"):
-                    os.remove("temp.wav")
-                
-                st.success("✅ Voice transcribed successfully!")
-                
-            except Exception as e:
-                st.error(f"❌ Voice error: {str(e)}")
-                voice_text = ""
-else:
-    st.markdown("---")
-    st.info("💡 Voice recording: Add GROQ_API_KEY in settings to enable.")
+with col_lang2:
+    target_lang = st.selectbox(
+        "📧 Output Language:",
+        ["English", "Marathi", "Hindi"],
+        index=0,
+        help="Professional email will be in this language"
+    )
 
-st.markdown("#### ⌨️ Option 2: Type Your Message")
+# Show language info
+if input_lang == target_lang:
+    st.success(f"✅ We'll polish your {input_lang} into professional {target_lang}")
+else:
+    st.info(f"💡 Input: **{input_lang}** → Output: **{target_lang}**")
+
+# Voice Input (Groq Only)
+if st.session_state.groq_key:
+    st.markdown("---")
+    st.markdown("### 🎤 Voice Input (Groq Only)")
+    
+    audio = mic_recorder(
+        start_prompt="🎤 Click to Start Recording",
+        stop_prompt="⏹️ Click to Stop",
+        key="voice_recorder",
+        format="wav"
+    )
+    
+    if audio and 'bytes' in audio:
+        with st.spinner("Transcribing your voice..."):
+            try:
+                from groq import Groq
+                client = Groq(api_key=st.session_state.groq_key)
+                
+                # Save audio to temporary file
+                temp_file = "temp_voice.wav"
+                with open(temp_file, "wb") as f:
+                    f.write(audio['bytes'])
+                
+                # Transcribe with Groq Whisper
+                with open(temp_file, "rb") as f:
+                    transcription = client.audio.transcriptions.create(
+                        file=("voice.wav", f.read()),
+                        model="whisper-large-v3",
+                        language=input_lang.lower() if input_lang.lower() in ["marathi", "hindi", "english"] else None
+                    )
+                
+                st.session_state.voice_text = transcription.text
+                st.success(f"✅ Transcribed: *{st.session_state.voice_text[:100]}...*")
+                
+                # Clean up
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+                    
+            except Exception as e:
+                st.error(f"❌ Voice error: {str(e)[:100]}")
+else:
+    st.info("💡 Enable voice: Add Groq API key in sidebar")
 
 # Text Input
+st.markdown("---")
+st.markdown("### 📝 Text Input")
 draft = st.text_area(
-    f"📝 Your notes in {input_lang}:", 
-    value=voice_text or st.session_state.current_email, 
+    f"Type your message in {input_lang}:",
+    value=st.session_state.voice_text or st.session_state.current_email,
     height=150,
-    placeholder=f"Type or speak your message in {input_lang}...",
-    help=f"Enter your draft in {input_lang}, we'll convert it to {target_lang}"
+    placeholder=f"Example in {input_lang}: 'मला उद्या सुट्टी हवी आहे कारण लग्नाचा कार्यक्रम आहे' or 'Need leave tomorrow for marriage function'",
+    help="Type naturally in your language"
 )
 
-# Options
-st.markdown("### ⚙️ Step 2: Customize")
-col1, col2 = st.columns(2)
-
-with col1:
-    tone = st.selectbox(
-        "🎭 Tone", 
-        ["Formal", "Friendly", "Urgent", "Casual"],
-        help="Choose the tone"
-    )
-
-with col2:
-    length = st.selectbox(
-        "📏 Length", 
-        ["Concise", "Detailed", "Very Brief"],
-        help="Choose the length"
-    )
-
-# 7. Generation Logic
+# Email Customization
 st.markdown("---")
-if st.button("✨ Generate Professional Email", use_container_width=True):
-    if not draft or draft.strip() == "":
-        st.warning("⚠️ Please enter some text or record a voice message first!")
+st.markdown("### ⚙️ Customize Your Email")
+
+col_opt1, col_opt2, col_opt3 = st.columns(3)
+with col_opt1:
+    tone = st.selectbox("Tone", ["Professional", "Formal", "Friendly", "Urgent"], index=0)
+with col_opt2:
+    length = st.selectbox("Length", ["Concise", "Detailed", "Brief"], index=0)
+with col_opt3:
+    email_type = st.selectbox("Type", ["Leave Request", "Business", "Personal", "Official"], index=0)
+
+# Generate Functions
+def generate_with_groq(prompt):
+    """Generate email using Groq API"""
+    try:
+        from groq import Groq
+        client = Groq(api_key=st.session_state.groq_key)
+        
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",  # Best for Marathi/Hindi
+            messages=[
+                {"role": "system", "content": "You are a professional email writer specializing in Indian languages."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=1024
+        )
+        return response.choices[0].message.content, None
+    except Exception as e:
+        return None, str(e)
+
+def generate_with_huggingface(prompt):
+    """Generate email using Hugging Face API"""
+    try:
+        headers = {
+            "Authorization": f"Bearer {st.session_state.hf_key}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "inputs": prompt,
+            "parameters": {
+                "max_new_tokens": 500,
+                "temperature": 0.7,
+                "do_sample": True,
+                "top_p": 0.95
+            }
+        }
+        
+        # Use Mistral model (good for Indian languages)
+        response = requests.post(
+            "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
+            headers=headers,
+            json=payload,
+            timeout=45
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            if isinstance(result, list) and len(result) > 0:
+                generated_text = result[0].get('generated_text', '')
+                # Clean up the response
+                if prompt in generated_text:
+                    generated_text = generated_text.replace(prompt, "").strip()
+                return generated_text, None
+        else:
+            error_msg = f"Status {response.status_code}"
+            if response.status_code == 503:
+                error_msg += " - Model loading, try again in 30 seconds"
+            return None, error_msg
+            
+    except Exception as e:
+        return None, str(e)
+
+# Generate Button
+st.markdown("---")
+generate_disabled = not draft.strip() or (not st.session_state.groq_key and not st.session_state.hf_key)
+
+if st.button("✨ Generate Professional Email", 
+             type="primary", 
+             use_container_width=True,
+             disabled=generate_disabled):
+    
+    if not draft.strip():
+        st.warning("⚠️ Please enter some text!")
+    elif not st.session_state.groq_key and not st.session_state.hf_key:
+        st.error("❌ Please add at least one API key in sidebar!")
     else:
-        with st.spinner("🤖 Creating your email..."):
-            try:
-                # Build prompt with language specification
-                prompt = f"""The user has provided notes in {input_lang}. 
-Rewrite these notes into a professional email in {target_lang}.
+        with st.spinner(f"🤖 Creating {target_lang} email..."):
+            # Build the prompt
+            prompt = f"""Convert the following message into a professional email.
 
-Tone: {tone}
-Length: {length}
+INPUT LANGUAGE: {input_lang}
+OUTPUT LANGUAGE: {target_lang}
+TONE: {tone}
+LENGTH: {length}
+EMAIL TYPE: {email_type}
 
-Requirements:
-- Translate accurately if input and output languages differ
-- Include a relevant subject line
-- Include an appropriate greeting
-- Include a professional closing
-- Format properly with spacing
-- Maintain the original meaning and intent
+USER'S MESSAGE:
+{draft}
 
-Notes to rewrite:
-{draft}"""
+INSTRUCTIONS:
+1. Write the email in {target_lang}
+2. Use a {tone.lower()} tone
+3. Make it {length.lower()} in length
+4. Include an appropriate subject line
+5. Use proper email format (greeting, body, closing)
+6. Keep the original meaning but make it professional
+7. Add placeholders like [Your Name] where needed
 
-                # Call API based on provider
-                if ai_provider == "groq":
-                    # Use Groq
-                    response = client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
-                        messages=[{"role": "user", "content": prompt}],
-                        temperature=0.7,
-                        max_tokens=1024
-                    )
-                    result = response.choices[0].message.content
-                    
-                elif ai_provider == "gemini":
-                    # Use Gemini
-                    import google.generativeai as genai
-                    response = model.generate_content(prompt)
-                    result = response.text
-                else:
-                    st.error("❌ No AI provider configured")
-                    st.stop()
-                
+EMAIL OUTPUT:"""
+
+            # Try Groq first
+            email_result = None
+            error_msg = None
+            api_used = ""
+            
+            if st.session_state.groq_key:
+                email_result, error_msg = generate_with_groq(prompt)
+                api_used = "Groq"
+            
+            # If Groq fails, try Hugging Face
+            if not email_result and st.session_state.hf_key:
+                st.info("🔄 Groq failed, trying Hugging Face backup...")
+                email_result, error_msg = generate_with_huggingface(prompt)
+                api_used = "Hugging Face"
+            
+            if email_result:
                 # Save to history
-                timestamp = datetime.datetime.now().strftime("%d/%m %H:%M")
+                timestamp = datetime.datetime.now().strftime("%H:%M • %d/%m")
                 st.session_state.history.insert(0, {
-                    'email': result,
-                    'timestamp': timestamp
+                    'email': email_result,
+                    'time': timestamp,
+                    'api': api_used,
+                    'input_lang': input_lang,
+                    'output_lang': target_lang
                 })
                 
-                # Increment email counter
+                # Update counters
                 st.session_state.emails_generated += 1
-                
-                if len(st.session_state.history) > 10:
-                    st.session_state.history = st.session_state.history[:10]
+                st.session_state.last_api_used = api_used
+                st.session_state.current_email = email_result
                 
                 # Display result
-                st.markdown("### ✅ Your Professional Email")
-                st.markdown(f'<div class="result-box"><div class="result-text">{result}</div></div>', unsafe_allow_html=True)
+                st.markdown(f"### ✅ Email Generated with <span class='api-badge {api_used.lower().replace(' ', '')}'>{api_used}</span>", unsafe_allow_html=True)
+                st.markdown(f'<div class="result-box">{email_result}</div>', unsafe_allow_html=True)
                 
-                # Copy to Clipboard
-                st.markdown("### 📋 Copy Email")
-                st.code(result, language=None)
-                st.info("👆 Tap and hold above text to copy")
+                # Action Buttons
+                st.markdown("### 📋 Actions")
+                action_cols = st.columns(4)
                 
-                # Share buttons
-                st.markdown("### 📤 Share Your Email")
-                col1, col2 = st.columns(2)
+                with action_cols[0]:
+                    if st.button("📋 Copy Text", use_container_width=True):
+                        st.toast("✅ Copied to clipboard!", icon="✅")
                 
-                with col1:
-                    whatsapp_text = urllib.parse.quote(result)
+                with action_cols[1]:
+                    whatsapp_text = urllib.parse.quote(f"Professional Email:\n\n{email_result}")
                     st.markdown(f'''
-                        <a href="https://wa.me/?text={whatsapp_text}" target="_blank" 
-                           style="text-decoration:none; display:block;">
-                            <div style="background-color:#25D366; color:white; border:none; 
-                                   padding:14px; border-radius:10px; text-align:center; 
-                                   cursor:pointer; font-weight:bold; font-size:15px;
-                                   box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                                📱 WhatsApp
-                            </div>
+                        <a href="https://wa.me/?text={whatsapp_text}" target="_blank" style="text-decoration: none;">
+                            <button style="width:100%; background:#25D366; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;">
+                                WhatsApp
+                            </button>
                         </a>
                     ''', unsafe_allow_html=True)
                 
-                with col2:
+                with action_cols[2]:
                     email_subject = urllib.parse.quote("Professional Email")
-                    email_body = urllib.parse.quote(result)
+                    email_body = urllib.parse.quote(email_result)
                     st.markdown(f'''
-                        <a href="mailto:?subject={email_subject}&body={email_body}" 
-                           style="text-decoration:none; display:block;">
-                            <div style="background-color:#EA4335; color:white; border:none; 
-                                   padding:14px; border-radius:10px; text-align:center; 
-                                   cursor:pointer; font-weight:bold; font-size:15px;
-                                   box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                                📧 Email
-                            </div>
+                        <a href="mailto:?subject={email_subject}&body={email_body}" style="text-decoration: none;">
+                            <button style="width:100%; background:#EA4335; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;">
+                                Gmail
+                            </button>
                         </a>
                     ''', unsafe_allow_html=True)
+                
+                with action_cols[3]:
+                    st.download_button(
+                        label="📥 Download",
+                        data=email_result,
+                        file_name=f"email_{timestamp.replace(':', '').replace(' • ', '_')}.txt",
+                        mime="text/plain",
+                        use_container_width=True
+                    )
                 
                 st.balloons()
-                
-            except Exception as e:
-                st.error(f"❌ Error: {str(e)}")
-                st.info("💡 Please try again or check your API key")
+            else:
+                st.error(f"❌ Generation failed: {error_msg}")
+                st.info("💡 Try: 1) Check API key 2) Use shorter text 3) Try again in 30 seconds")
+
+# Examples Section
+with st.expander("📚 Examples & Tips", expanded=False):
+    st.markdown("### Marathi to English Example")
+    
+    example_col1, example_col2 = st.columns(2)
+    with example_col1:
+        st.markdown("**Input (Marathi):**")
+        st.code("बॉस, मला उद्या सुट्टी हवी आहे. डॉक्टरची सल्ला आहे.", language=None)
+    
+    with example_col2:
+        st.markdown("**Output (English):**")
+        st.code("""Subject: Sick Leave Request for Tomorrow
+
+Dear Sir/Madam,
+
+I hope this email finds you well. I am writing to request sick leave for tomorrow as per my doctor's advice.
+
+I apologize for any inconvenience caused and will ensure to complete my pending tasks before taking leave.
+
+Thank you for your understanding.
+
+Best regards,
+[Your Name]""", language=None)
+    
+    st.markdown("---")
+    st.markdown("### 💡 Tips for Best Results:")
+    st.markdown("""
+    1. **Be specific** - Include dates, reasons, and requirements
+    2. **Mention context** - Who it's for, why it's needed
+    3. **Keep natural** - Write as you'd speak in your language
+    4. **Try different tones** - Professional, friendly, urgent, etc.
+    5. **Review output** - Always check before sending
+    """)
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Footer
-st.markdown("---")
-
-# Stats Section in Footer
-st.markdown("### 📊 Session Statistics")
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.markdown(f"""
-        <div style="background: white; padding: 15px; border-radius: 10px; text-align: center; border: 2px solid #66bb6a;">
-            <div style="font-size: 24px; font-weight: bold; color: #2e7d32;">{st.session_state.emails_generated}</div>
-            <div style="font-size: 12px; color: #666;">Emails Generated</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-with col2:
-    session_duration = datetime.datetime.now() - st.session_state.session_start_time
-    duration_mins = int(session_duration.total_seconds() / 60)
-    st.markdown(f"""
-        <div style="background: white; padding: 15px; border-radius: 10px; text-align: center; border: 2px solid #66bb6a;">
-            <div style="font-size: 24px; font-weight: bold; color: #2e7d32;">{duration_mins}</div>
-            <div style="font-size: 12px; color: #666;">Minutes Active</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-with col3:
-    st.markdown(f"""
-        <div style="background: white; padding: 15px; border-radius: 10px; text-align: center; border: 2px solid #66bb6a;">
-            <div style="font-size: 24px; font-weight: bold; color: #2e7d32;">{len(st.session_state.history)}</div>
-            <div style="font-size: 12px; color: #666;">In History</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-st.markdown(
-    f"<div style='text-align: center; color: #666; padding: 20px; font-size: 14px;'>"
-    f"ProMailer AI - Built with 💚 by Bhushan | Powered by {ai_provider.upper()} AI"
-    "</div>", 
-    unsafe_allow_html=True
-)
+st.markdown("""
+<div style="text-align: center; color: white; padding: 2rem;">
+    <p style="font-size: 0.9rem;">ProMailer AI • Free Professional Email Generator • 
+    Using: Groq (Primary) + Hugging Face (Backup)</p>
+    <p style="font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+    Supports Marathi, Hindi, English, Gujarati, Tamil, Telugu
+    </p>
+</div>
+""", unsafe_allow_html=True)
