@@ -181,12 +181,19 @@ except Exception as e:
 
 # 6. Main Application Content
 st.markdown('<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />', unsafe_allow_html=True)
-st.markdown('<meta http-equiv="Pragma" content="no-cache" />', unsafe_allow_html=True)
-st.markdown('<meta http-equiv="Expires" content="0" />', unsafe_allow_html=True)
+
+# Reduce top padding
+st.markdown("""
+<style>
+.block-container {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 st.title("✉️ ProMailer AI")
-st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 16px; font-weight: 600;'>⌨️ Type OR 🎤 Speak → Professional Emails!</p>", unsafe_allow_html=True)
-st.caption("v2.0.1 - Statistics Removed")
+st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 16px; font-weight: 600; margin-top: -10px;'>⌨️ Type OR 🎤 Speak → Professional Emails!</p>", unsafe_allow_html=True)
 
 # Language Selection
 st.markdown("### 🌐 Language Settings")
