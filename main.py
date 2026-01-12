@@ -17,29 +17,21 @@ st.cache_data.clear()
 st.cache_resource.clear()
 
 # Initialize session state
-if 'history' not in st.session_state:
-    st.session_state.history = []
 if 'current_email' not in st.session_state:
     st.session_state.current_email = ""
 if 'last_generated' not in st.session_state:
     st.session_state.last_generated = ""
 if 'user_signature' not in st.session_state:
     st.session_state.user_signature = ""
-
-# Email templates
-EMAIL_TEMPLATES = {
-    "📅 Meeting Request": "Hi, I would like to schedule a meeting to discuss the project progress. Please let me know your available time slots.",
-    "🏖️ Leave Application": "I am writing to request leave from [start date] to [end date] due to personal reasons. I will ensure all my work is completed before I leave.",
-    "📧 Follow-up": "I wanted to follow up on my previous email regarding [topic]. Please let me know if you need any additional information.",
-    "🎉 Thank You": "Thank you very much for your time and consideration. I really appreciate your help with this matter.",
-    "❓ Information Request": "I am writing to request information about [topic]. Could you please provide details on this?",
-    "📋 Status Update": "I wanted to update you on the progress of [project]. Here is the current status and next steps."
-}
+if 'voice_new_email_text' not in st.session_state:
+    st.session_state.voice_new_email_text = ""
+if 'voice_received_email_text' not in st.session_state:
+    st.session_state.voice_received_email_text = ""
 
 # Sidebar
 with st.sidebar:
     st.markdown("# 📖 ProMailer AI")
-    st.caption("v2.1.0 - Enhanced Edition 🚀")
+    st.caption("v2.4.0 - Simplified Edition 🚀")
 
     # Signature Manager
     st.markdown("---")
@@ -60,7 +52,6 @@ with st.sidebar:
     st.caption("⌨️ Type rough notes → Professional email")
     st.caption("🎤 Speak in any language → Professional email")
     st.caption("🌍 Works in English, Marathi, Hindi")
-    st.caption("📋 Use templates for quick start")
 
     # Share button
     st.markdown("---")
@@ -68,25 +59,6 @@ with st.sidebar:
     app_link = "https://promailer-ai-test.streamlit.app/"
     share_msg = urllib.parse.quote(f"Check out ProMailer AI Enhanced: {app_link}")
     st.markdown(f'<a href="https://wa.me/?text={share_msg}" target="_blank" style="text-decoration:none; display:block;"><div style="background:#25D366; color:white; padding:12px; border-radius:8px; text-align:center; font-weight:bold; font-size:14px;">📱 Share via WhatsApp</div></a>', unsafe_allow_html=True)
-
-    # History
-    st.markdown("---")
-    st.markdown("### 📜 Recent History")
-
-    if st.session_state.history:
-        if st.button("🗑️ Clear History", use_container_width=True):
-            st.session_state.history = []
-            st.rerun()
-
-        for i, item in enumerate(st.session_state.history[:5]):
-            timestamp = item.get('timestamp', 'No date')
-            with st.expander(f"📧 Email {i+1} - {timestamp}"):
-                st.text_area("", value=item.get('email', ''), height=100, key=f"hist_{i}", disabled=True, label_visibility="collapsed")
-                if st.button("📋 Reuse", key=f"reuse_{i}", use_container_width=True):
-                    st.session_state.current_email = item.get('email', '')
-                    st.rerun()
-    else:
-        st.info("📭 No history yet")
 
     st.markdown("---")
     st.markdown("### 💚 ProMailer AI")
@@ -112,26 +84,16 @@ with st.sidebar:
         
         ---
         
-        **😴 About App Sleep:**
+        **🚀 How to Use:**
         
-        This free app may sleep after a few hours of inactivity to save resources. If you see a "wake up" screen, just click the button - it takes only 10-30 seconds to restart!
+        **Write New Email:**
+        - Type or speak what you want to say
+        - AI makes it professional
         
-        💡 **Tip:** Once the app loads, it stays active while you're using it. No interruptions during your work!
-        
-        ---
-        
-        **🚀 Quick Start Guide:**
-        
-        1. **Choose template** or start from scratch
-        2. **Type or speak** your rough notes
-        3. **Select language** & tone
-        4. **Generate** professional email
-        5. **Copy & share** instantly!
-        
-        **For Email Replies:**
-        - Upload screenshot of received email
-        - Choose reply tone
-        - Get perfect response in seconds!
+        **Reply to Email:**
+        - Type or speak the email you received
+        - AI generates perfect reply
+        - You just choose tone & type!
         """)
 
 
@@ -147,7 +109,6 @@ h3 { color: #2e7d32 !important; font-weight: 600 !important; }
 .stTextArea textarea { border-radius: 10px !important; border: 2px solid #66bb6a !important; font-size: 15px !important; }
 .stTextArea > label { font-weight: 700 !important; color: #1b5e20 !important; font-size: 16px !important; }
 .stSelectbox > label { font-weight: 600 !important; color: #2e7d32 !important; font-size: 14px !important; }
-/* Fix tab styling - make both tabs equally visible */
 .stTabs [data-baseweb="tab-list"] { gap: 8px; }
 .stTabs [data-baseweb="tab"] { 
     height: 50px;
@@ -169,327 +130,206 @@ h3 { color: #2e7d32 !important; font-weight: 600 !important; }
 }
 </style>
 
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-CWEBJ8Q2BK"></script>
 <script>
-// Keep app awake by simulating activity every 4 minutes
-setInterval(function() {
-    // Create a small interaction to prevent sleep
-    var event = new Event('streamlit:rerun');
-    window.dispatchEvent(event);
-}, 240000); // 4 minutes
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-CWEBJ8Q2BK');
 </script>
 """, unsafe_allow_html=True)
 
 # Initialize AI
+ai_provider = None
+text_model = None
+client = None
+
 try:
-    # Priority 1: Gemini (Best for vision + multilingual including Marathi)
-    if "GEMINI_API_KEY" in st.secrets:
-        import google.generativeai as genai
-        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        ai_provider = "gemini"
-        
-        # Try different model names for text generation
-        model_names = [
-            'gemini-2.5-flash',
-            'gemini-2.5-pro',
-            'gemini-2.0-flash',
-            'gemini-2.0-flash-exp'
-        ]
-        
-        text_model = None
-        for model_name in model_names:
-            try:
-                text_model = genai.GenerativeModel(model_name)
-                break
-            except:
-                continue
-        
-        if not text_model:
-            raise Exception("No Gemini model available")
+    # Try Groq FIRST
+    if "GROQ_API_KEY" in st.secrets:
+        try:
+            from groq import Groq
+            client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+            ai_provider = "groq"
+            st.sidebar.success("✅ Using Groq AI (Fast & Reliable)")
+        except Exception as e:
+            st.sidebar.warning(f"⚠️ Groq unavailable: {str(e)}")
     
-    # Priority 2: Groq (Fast fallback for text)
-    elif "GROQ_API_KEY" in st.secrets:
-        from groq import Groq
-        client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-        ai_provider = "groq"
+    # Try Gemini as fallback
+    if not ai_provider and "GEMINI_API_KEY" in st.secrets:
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+            
+            model_names = ['gemini-1.5-flash', 'gemini-1.5-pro']
+            
+            for model_name in model_names:
+                try:
+                    text_model = genai.GenerativeModel(model_name)
+                    ai_provider = "gemini"
+                    st.sidebar.success(f"✅ Using {model_name}")
+                    break
+                except:
+                    continue
+        except Exception as e:
+            st.sidebar.warning(f"⚠️ Gemini unavailable: {str(e)}")
     
-    # Priority 3: HuggingFace (Last resort)
-    elif "HUGGINGFACE_API_KEY" in st.secrets:
-        import requests
-        hf_api_key = st.secrets["HUGGINGFACE_API_KEY"]
-        ai_provider = "huggingface"
-    
-    else:
-        st.error("⚠️ Please add API key in Streamlit Secrets")
+    if not ai_provider:
+        st.error("⚠️ No AI provider available. Please add GROQ_API_KEY or GEMINI_API_KEY in Streamlit Secrets")
+        st.info("💡 **Get Free API Keys:**\n- Groq: https://console.groq.com (Recommended)\n- Gemini: https://makersuite.google.com/app/apikey")
         st.stop()
 
-    # Check for Gemini vision features separately
-    has_vision = False
-    if "GEMINI_API_KEY" in st.secrets:
-        import google.generativeai as genai
-        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        
-        # Try different model names for vision
-        vision_model_names = [
-            'gemini-2.5-flash',
-            'gemini-2.5-pro',
-            'gemini-2.0-flash',
-            'gemini-2.0-flash-exp'
-        ]
-        
-        vision_model = None
-        for model_name in vision_model_names:
-            try:
-                vision_model = genai.GenerativeModel(model_name)
-                has_vision = True
-                st.sidebar.success(f"✅ Using {model_name}")
-                break
-            except:
-                continue
-
 except Exception as e:
-    st.error(f"⚠️ API Error: {str(e)}")
+    st.error(f"⚠️ API Setup Error: {str(e)}")
     st.stop()
 
 # Main content
 st.title("✉️ ProMailer AI")
 st.markdown("<p style='text-align: center; color: #2e7d32; font-size: 15px; font-weight: 600; margin-top: -8px;'>⌨️ Type OR 🎤 Speak → Professional Emails!</p>", unsafe_allow_html=True)
 
-# Email Templates Section
-st.markdown("### 📋 Quick Start")
+# Two tabs
 tab1, tab2 = st.tabs(["📝 Write New Email", "📧 Reply to Email"])
 
+# TAB 1: WRITE NEW EMAIL
 with tab1:
-    st.caption("Click a template to auto-fill, then customize!")
-    cols = st.columns(3)
-    template_keys = list(EMAIL_TEMPLATES.keys())
-
-    for idx, template_name in enumerate(template_keys):
-        col_idx = idx % 3
-        with cols[col_idx]:
-            if st.button(template_name, key=f"template_{idx}", use_container_width=True):
-                st.session_state.current_email = EMAIL_TEMPLATES[template_name]
-                st.rerun()
-
-with tab2:
     st.markdown("""
-    <div style='background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); 
-         padding: 15px; border-radius: 10px; border: 2px solid #2196F3; margin: 10px 0;'>
-        <div style='font-size: 16px; font-weight: bold; color: #1565c0; margin-bottom: 8px;'>
-            📧 Smart Reply Generator
+    <div style='background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); 
+         padding: 15px; border-radius: 10px; border: 2px solid #4CAF50; margin: 10px 0;'>
+        <div style='font-size: 16px; font-weight: bold; color: #1b5e20; margin-bottom: 8px;'>
+            📝 Create Professional Email
         </div>
-        <div style='font-size: 13px; color: #333;'>
-            Got an email from your boss/senior? Upload screenshot and we'll generate the perfect reply!
+        <div style='font-size: 13px; color: #2e7d32;'>
+            Speak or type what YOU want to say - AI makes it professional!
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    uploaded_email = st.file_uploader(
-        "📸 Upload email screenshot (PNG, JPG)",
-        type=['png', 'jpg', 'jpeg'],
-        help="Take a screenshot of the email you received",
-        key="email_reply_upload"
-    )
+    # Language Settings
+    st.markdown("### 🌍 Language Settings")
+    col1, col2 = st.columns(2)
 
-    if uploaded_email:
-        st.image(uploaded_email, caption="Email to reply to", use_container_width=True)
+    with col1:
+        input_lang = st.selectbox("🎤 Input:", ["English", "Marathi", "Hindi", "Mix"], help="Your input language", key="new_input_lang")
 
-        reply_col1, reply_col2 = st.columns(2)
-        with reply_col1:
-            reply_tone = st.selectbox("Reply Tone:", ["Professional", "Respectful", "Friendly", "Formal"], key="reply_tone")
-        with reply_col2:
-            reply_type = st.selectbox("Reply Type:", ["Acknowledge", "Provide Info", "Request Clarification", "Agree/Confirm"], key="reply_type")
+    with col2:
+        target_lang = st.selectbox("📧 Output:", ["English", "Marathi"], help="Email language", key="new_target_lang")
 
-        if st.button("✨ Generate Reply", use_container_width=True, key="gen_reply"):
-            with st.spinner("📧 Analyzing email and generating reply..."):
+    if input_lang == "English" and target_lang == "English":
+        st.success("✅ Convert rough English to professional English")
+
+    # Input Section
+    st.markdown("---")
+    st.markdown("### ✍️ Your Message")
+
+    # Voice Option Card
+    st.markdown("""
+    <div style='background: linear-gradient(135deg, #FFF3CD 0%, #FFE69C 100%); 
+         padding: 20px; border-radius: 12px; border: 3px solid #FFC107; margin: 15px 0;'>
+        <div style='font-size: 18px; font-weight: bold; color: #856404; margin-bottom: 8px;'>
+            🎤 VOICE OPTION - Record Your Message
+        </div>
+        <div style='font-size: 14px; color: #856404; margin-bottom: 10px;'>
+            Speak your rough notes - AI will create a professional email!
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    voice_text_new = ""
+    if "GROQ_API_KEY" in st.secrets:
+        audio_input = mic_recorder(start_prompt="🎤 Start Recording", stop_prompt="🛑 Stop Recording", key='recorder_new_email')
+        if audio_input:
+            with st.spinner("🎧 Transcribing..."):
                 try:
-                    email_content = ""
-
-                    # Try to extract text using Gemini Vision if available
-                    if has_vision:
-                        try:
-                            import PIL.Image
-                            uploaded_email.seek(0)  # Reset file pointer
-                            img = PIL.Image.open(uploaded_email)
-
-                            extract_response = vision_model.generate_content([
-                                "Extract all text from this email screenshot. Return ONLY the email text content, no explanations:",
-                                img
-                            ])
-                            email_content = extract_response.text
-
-                            st.success("✅ Email text extracted automatically!")
-                            st.markdown("**Extracted Email:**")
-                            st.info(email_content)
-
-                        except Exception as e:
-                            st.warning(f"⚠️ Auto-extraction failed: {str(e)}")
-                            email_content = ""
-
-                    # Fallback: Ask user to paste text if extraction failed
-                    if not email_content or not email_content.strip():
-                        st.warning("💡 Please paste the email content below:")
-                        email_content = st.text_area(
-                            "Email content:",
-                            height=150,
-                            placeholder="Paste the email you received here...",
-                            key="email_paste"
+                    from groq import Groq
+                    groq_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                    
+                    with open("temp_new.wav", "wb") as f:
+                        f.write(audio_input['bytes'])
+                    with open("temp_new.wav", "rb") as af:
+                        transcription = groq_client.audio.transcriptions.create(
+                            file=("temp_new.wav", af.read()), 
+                            model="whisper-large-v3"
                         )
-
-                    # Generate reply if we have content
-                    if email_content and email_content.strip():
-                        with st.spinner("✍️ Generating your reply..."):
-                            reply_prompt = f"""You received this email:
-
-{email_content}
-
-Generate a {reply_tone.lower()} reply that will {reply_type.lower()}. 
-
-Requirements:
-- Match the sender's formality level
-- Be concise but complete
-- Include proper greeting and closing
-- Professional tone
-- Address all points raised"""
-
-                            if ai_provider == "gemini":
-                                response = text_model.generate_content(reply_prompt)
-                                reply_result = response.text
-                            elif ai_provider == "groq":
-                                response = client.chat.completions.create(
-                                    model="llama-3.3-70b-versatile",
-                                    messages=[{"role": "user", "content": reply_prompt}],
-                                    temperature=0.7,
-                                    max_tokens=1024
-                                )
-                                reply_result = response.choices[0].message.content
-                            else:
-                                reply_result = f"Reply: {email_content}"
-
-                            st.markdown("### ✅ Your Reply Draft")
-                            st.markdown(f'<div style="background:#e8f5e9; padding:20px; border-radius:12px; border:2px solid #4caf50;"><div style="color:#1b5e20; font-size:15px; line-height:1.6; white-space: pre-wrap;">{reply_result}</div></div>', unsafe_allow_html=True)
-
-                            st.markdown("### 📋 Copy Reply")
-                            st.code(reply_result, language=None)
-                            st.info("👆 Tap and hold to copy")
-
-                            # Share buttons for reply
-                            st.markdown("### 📤 Share Reply")
-                            share_col1, share_col2 = st.columns(2)
-
-                            with share_col1:
-                                whatsapp_text = urllib.parse.quote(reply_result)
-                                st.markdown(f'<a href="https://wa.me/?text={whatsapp_text}" target="_blank" style="text-decoration:none; display:block;"><div style="background:#25D366; color:white; padding:14px; border-radius:10px; text-align:center; font-weight:bold; font-size:15px;">📱 WhatsApp</div></a>', unsafe_allow_html=True)
-
-                            with share_col2:
-                                email_subject = urllib.parse.quote("Reply from ProMailer AI")
-                                email_body = urllib.parse.quote(reply_result)
-                                st.markdown(f'<a href="mailto:?subject={email_subject}&body={email_body}" style="text-decoration:none; display:block;"><div style="background:#EA4335; color:white; padding:14px; border-radius:10px; text-align:center; font-weight:bold; font-size:15px;">📧 Email</div></a>', unsafe_allow_html=True)
-                            
-                            st.info("💡 **Tip:** Email button works best on mobile. If it doesn't open on desktop, use the copy section above to paste into your email client.")
-
-                            # Save to session
-                            st.session_state.last_generated = reply_result
-
-                            st.balloons()
-                    else:
-                        st.error("❌ No email content to generate reply from. Please paste the email text above.")
-
+                        voice_text_new = transcription.text
+                    if os.path.exists("temp_new.wav"):
+                        os.remove("temp_new.wav")
+                    
+                    st.session_state.voice_new_email_text = voice_text_new
+                    
+                    st.success("✅ Voice transcribed!")
+                    st.markdown("**📝 What you said:**")
+                    st.text_area(
+                        "Your transcribed voice:",
+                        value=voice_text_new,
+                        height=100,
+                        key="show_new_voice_transcript",
+                        disabled=True,
+                        label_visibility="collapsed"
+                    )
+                    st.info("👇 **Your voice text appears below.** Scroll down and click 'Generate Professional Email'.")
+                    
                 except Exception as e:
                     st.error(f"❌ Error: {str(e)}")
-
-    # Feature status indicator
-    if has_vision:
-        st.success("✅ **Auto-extraction enabled** - Just upload and click generate!")
     else:
-        st.info("💡 **Manual mode** - Upload image, then paste text to generate reply")
+        st.info("🎤 Voice requires GROQ_API_KEY in secrets")
 
+    st.markdown("<p style='text-align: center; font-size: 16px; font-weight: bold; color: #666; margin: 15px 0;'>OR</p>", unsafe_allow_html=True)
 
+    # Type Option Card
+    st.markdown("""
+    <div style='background: linear-gradient(135deg, #D1ECF1 0%, #B6D4FE 100%); 
+         padding: 20px; border-radius: 12px; border: 3px solid #17A2B8; margin: 15px 0;'>
+        <div style='font-size: 18px; font-weight: bold; color: #0C5460; margin-bottom: 8px;'>
+            ✍️ TYPE OPTION - Write Your Message
+        </div>
+        <div style='font-size: 14px; color: #0C5460; margin-bottom: 10px;'>
+            Type your rough notes or paste content here
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-# Language Settings
-st.markdown("---")
-st.markdown("### 🌐 Language Settings")
-col1, col2 = st.columns(2)
-
-with col1:
-    input_lang = st.selectbox("🎤 Input:", ["English", "Marathi", "Hindi", "Mix"], help="Your input language")
-
-with col2:
-    target_lang = st.selectbox("📧 Output:", ["English", "Marathi"], help="Email language")
-
-# Show message
-if input_lang == "English" and target_lang == "English":
-    st.success("✅ Convert rough English to professional English")
-
-# Input Section
-st.markdown("---")
-st.markdown("### ✍️ Your Message")
-
-# Voice input
-voice_text = ""
-if "GROQ_API_KEY" in st.secrets:
-    audio_input = mic_recorder(start_prompt="🎤 Record", stop_prompt="🛑 Stop", key='recorder')
-    if audio_input:
-        with st.spinner("🎧 Transcribing..."):
-            try:
-                # Import Groq for transcription
-                from groq import Groq
-                groq_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-                
-                with open("temp.wav", "wb") as f:
-                    f.write(audio_input['bytes'])
-                with open("temp.wav", "rb") as af:
-                    transcription = groq_client.audio.transcriptions.create(
-                        file=("temp.wav", af.read()), 
-                        model="whisper-large-v3"
-                    )
-                    voice_text = transcription.text
-                if os.path.exists("temp.wav"):
-                    os.remove("temp.wav")
-                
-                st.success("✅ Voice transcribed!")
-                
-                # Show transcription
-                with st.expander("📝 What you said", expanded=False):
-                    st.info(f"**Transcribed text:**\n{voice_text}")
-                    st.caption("💡 The transcription is shown for reference. The AI will generate a perfect professional email from your speech!")
-                    
-            except Exception as e:
-                st.error(f"❌ Error: {str(e)}")
-
-# Text input with word count
-draft = st.text_area(
-    f"📝 Type or speak your message:",
-    value=voice_text or st.session_state.current_email,
-    height=150,
-    placeholder=f"Type your rough notes in {input_lang}...",
-    help="Use templates above for quick start!"
-)
-
-# Word count
-if draft:
-    word_count = len(draft.split())
-    char_count = len(draft)
-    st.caption(f"📊 {word_count} words | {char_count} characters")
-
-# Options
-col1, col2 = st.columns(2)
-with col1:
-    tone = st.selectbox("🎭 Tone", ["Formal", "Friendly", "Urgent", "Casual"])
-with col2:
-    length = st.selectbox("📏 Length", ["Concise", "Detailed", "Very Brief"])
-
-# Generate button
-st.markdown("---")
-if st.button("✨ Generate Professional Email", use_container_width=True):
-    if not draft or draft.strip() == "":
-        st.warning("⚠️ Please enter text or record voice first!")
+    if voice_text_new:
+        display_text = voice_text_new
+    elif st.session_state.voice_new_email_text:
+        display_text = st.session_state.voice_new_email_text
     else:
-        with st.spinner("🤖 Creating your email..."):
-            try:
-                # Add signature if exists
-                signature_text = f"\n\n{st.session_state.user_signature}" if st.session_state.user_signature else ""
+        display_text = st.session_state.current_email
+    
+    draft = st.text_area(
+        f"📝 Your message (voice or typed):",
+        value=display_text,
+        height=150,
+        placeholder=f"Type your rough notes in {input_lang}... or use voice recording above",
+        key="new_draft"
+    )
 
-                prompt = f"""Convert these rough notes into a professional email in {target_lang}.
+    if draft:
+        word_count = len(draft.split())
+        char_count = len(draft)
+        st.caption(f"📊 {word_count} words | {char_count} characters")
+
+    # Options
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+    with col1:
+        tone = st.selectbox("🎭 Tone", ["Formal", "Friendly", "Urgent", "Casual"], key="new_tone")
+    with col2:
+        length = st.selectbox("📏 Length", ["Concise", "Detailed", "Very Brief"], key="new_length")
+
+    # Generate button
+    st.markdown("---")
+    if st.button("✨ Generate Professional Email", use_container_width=True, key="gen_new"):
+        actual_draft = draft or st.session_state.voice_new_email_text
+        
+        if not actual_draft or actual_draft.strip() == "":
+            st.warning("⚠️ Please enter text or record voice first!")
+        else:
+            with st.spinner("🤖 Creating your email..."):
+                try:
+                    signature_text = f"\n\n{st.session_state.user_signature}" if st.session_state.user_signature else ""
+
+                    prompt = f"""Convert these rough notes into a professional email in {target_lang}.
 
 Tone: {tone}
 Length: {length}
@@ -501,148 +341,350 @@ Requirements:
 - Professional closing
 {f"- Add this signature at end: {signature_text}" if signature_text else ""}
 
-Notes: {draft}"""
+Notes: {actual_draft}"""
 
-                if ai_provider == "gemini":
-                    response = text_model.generate_content(prompt)
-                    result = response.text
-                elif ai_provider == "groq":
-                    response = client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
-                        messages=[{"role": "user", "content": prompt}],
-                        temperature=0.7,
-                        max_tokens=1024
+                    if ai_provider == "gemini":
+                        response = text_model.generate_content(prompt)
+                        result = response.text
+                    elif ai_provider == "groq":
+                        response = client.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=[{"role": "user", "content": prompt}],
+                            temperature=0.7,
+                            max_tokens=1024
+                        )
+                        result = response.choices[0].message.content
+
+                    st.session_state.last_generated = result
+
+                    # Track email generation
+                    st.markdown("""<script>
+                    if (typeof gtag !== 'undefined') {
+                        gtag('event', 'email_generated', {
+                            'event_category': 'engagement',
+                            'event_label': 'write_new_email',
+                            'value': 1
+                        });
+                    }
+                    </script>""", unsafe_allow_html=True)
+
+                    st.markdown("### ✅ Your Professional Email")
+                    st.markdown(f'<div style="background:#fff; padding:20px; border-radius:12px; border:2px solid #66bb6a;"><div style="color:#1b5e20; font-size:15px; line-height:1.6; white-space: pre-wrap;">{result}</div></div>', unsafe_allow_html=True)
+
+                    # Quick actions
+                    st.markdown("### 📄 Quick Actions")
+                    st.caption("Click to modify the email above")
+                    action_col1, action_col2, action_col3 = st.columns(3)
+
+                    with action_col1:
+                        if st.button("✂️ Make Shorter", use_container_width=True, key="action_shorter"):
+                            shorter_prompt = f"Make this email shorter and more concise while keeping the main message:\n\n{result}"
+                            with st.spinner("✂️ Making it shorter..."):
+                                try:
+                                    if ai_provider == "gemini":
+                                        response = text_model.generate_content(shorter_prompt)
+                                        shorter_result = response.text
+                                    elif ai_provider == "groq":
+                                        response = client.chat.completions.create(
+                                            model="llama-3.3-70b-versatile",
+                                            messages=[{"role": "user", "content": shorter_prompt}],
+                                            temperature=0.7,
+                                            max_tokens=1024
+                                        )
+                                        shorter_result = response.choices[0].message.content
+                                    
+                                    if 'shorter_result' in locals():
+                                        st.markdown("#### ✂️ Shorter Version:")
+                                        st.markdown(f'<div style="background:#fff3cd; padding:15px; border-radius:10px; border:2px solid #ffc107;"><div style="color:#333; font-size:15px; line-height:1.6; white-space: pre-wrap;">{shorter_result}</div></div>', unsafe_allow_html=True)
+                                        st.code(shorter_result, language=None)
+                                except Exception as e:
+                                    st.error(f"Error: {str(e)}")
+
+                    with action_col2:
+                        if st.button("📝 Make Longer", use_container_width=True, key="action_longer"):
+                            longer_prompt = f"Make this email more detailed and elaborate while maintaining professionalism:\n\n{result}"
+                            with st.spinner("📝 Making it longer..."):
+                                try:
+                                    if ai_provider == "gemini":
+                                        response = text_model.generate_content(longer_prompt)
+                                        longer_result = response.text
+                                    elif ai_provider == "groq":
+                                        response = client.chat.completions.create(
+                                            model="llama-3.3-70b-versatile",
+                                            messages=[{"role": "user", "content": longer_prompt}],
+                                            temperature=0.7,
+                                            max_tokens=1024
+                                        )
+                                        longer_result = response.choices[0].message.content
+                                    
+                                    if 'longer_result' in locals():
+                                        st.markdown("#### 📝 Longer Version:")
+                                        st.markdown(f'<div style="background:#d1ecf1; padding:15px; border-radius:10px; border:2px solid #17a2b8;"><div style="color:#333; font-size:15px; line-height:1.6; white-space: pre-wrap;">{longer_result}</div></div>', unsafe_allow_html=True)
+                                        st.code(longer_result, language=None)
+                                except Exception as e:
+                                    st.error(f"Error: {str(e)}")
+
+                    with action_col3:
+                        if st.button("😊 Friendlier", use_container_width=True, key="action_friendly"):
+                            friendly_prompt = f"Rewrite this email in a more friendly and warm tone while staying professional:\n\n{result}"
+                            with st.spinner("😊 Making it friendlier..."):
+                                try:
+                                    if ai_provider == "gemini":
+                                        response = text_model.generate_content(friendly_prompt)
+                                        friendly_result = response.text
+                                    elif ai_provider == "groq":
+                                        response = client.chat.completions.create(
+                                            model="llama-3.3-70b-versatile",
+                                            messages=[{"role": "user", "content": friendly_prompt}],
+                                            temperature=0.7,
+                                            max_tokens=1024
+                                        )
+                                        friendly_result = response.choices[0].message.content
+                                    
+                                    if 'friendly_result' in locals():
+                                        st.markdown("#### 😊 Friendlier Version:")
+                                        st.markdown(f'<div style="background:#d4edda; padding:15px; border-radius:10px; border:2px solid #28a745;"><div style="color:#333; font-size:15px; line-height:1.6; white-space: pre-wrap;">{friendly_result}</div></div>', unsafe_allow_html=True)
+                                        st.code(friendly_result, language=None)
+                                except Exception as e:
+                                    st.error(f"Error: {str(e)}")
+
+                    st.markdown("### 📋 Copy Email")
+                    st.code(result, language=None)
+                    st.info("👆 Tap and hold to copy")
+
+                    st.markdown("### 📤 Share")
+                    share_col1, share_col2 = st.columns(2)
+
+                    with share_col1:
+                        whatsapp_text = urllib.parse.quote(result)
+                        st.markdown(f'<a href="https://wa.me/?text={whatsapp_text}" target="_blank" style="text-decoration:none; display:block;"><div style="background:#25D366; color:white; padding:14px; border-radius:10px; text-align:center; font-weight:bold; font-size:15px;">📱 WhatsApp</div></a>', unsafe_allow_html=True)
+
+                    with share_col2:
+                        email_subject = urllib.parse.quote("Email from ProMailer AI")
+                        email_body = urllib.parse.quote(result)
+                        st.markdown(f'<a href="mailto:?subject={email_subject}&body={email_body}" style="text-decoration:none; display:block;"><div style="background:#EA4335; color:white; padding:14px; border-radius:10px; text-align:center; font-weight:bold; font-size:15px;">📧 Email</div></a>', unsafe_allow_html=True)
+                    
+                    st.info("💡 **Tip:** Email button works best on mobile. On desktop, use the copy section above.")
+
+                    st.balloons()
+
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
+
+# TAB 2: REPLY TO EMAIL (SIMPLIFIED - NO STEP 2!)
+with tab2:
+    st.markdown("""
+    <div style='background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); 
+         padding: 15px; border-radius: 10px; border: 2px solid #2196F3; margin: 10px 0;'>
+        <div style='font-size: 16px; font-weight: bold; color: #1565c0; margin-bottom: 8px;'>
+            📧 Smart Reply Generator
+        </div>
+        <div style='font-size: 13px; color: #333;'>
+            Tell us what email you received - AI generates the perfect reply!
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Language Settings
+    st.markdown("### 🌍 Language Settings")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        reply_input_lang = st.selectbox("🎤 Input:", ["English", "Marathi", "Hindi", "Mix"], help="Language of received email", key="reply_input_lang")
+
+    with col2:
+        reply_target_lang = st.selectbox("📧 Output:", ["English", "Marathi"], help="Reply language", key="reply_target_lang")
+
+    # Email You Received
+    st.markdown("---")
+    st.markdown("### 📥 What Email Did You Receive?")
+
+    # Voice Option
+    st.markdown("""
+    <div style='background: linear-gradient(135deg, #FFF3CD 0%, #FFE69C 100%); 
+         padding: 20px; border-radius: 12px; border: 3px solid #FFC107; margin: 15px 0;'>
+        <div style='font-size: 18px; font-weight: bold; color: #856404; margin-bottom: 8px;'>
+            🎤 VOICE OPTION - Read Email Aloud
+        </div>
+        <div style='font-size: 14px; color: #856404; margin-bottom: 10px;'>
+            Speak or read the email you received - AI will generate reply!
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    voice_received = ""
+    if "GROQ_API_KEY" in st.secrets:
+        audio_received = mic_recorder(start_prompt="🎤 Start Recording", stop_prompt="🛑 Stop", key='recorder_received_email')
+        if audio_received:
+            with st.spinner("🎧 Transcribing received email..."):
+                try:
+                    from groq import Groq
+                    groq_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                    
+                    with open("temp_received.wav", "wb") as f:
+                        f.write(audio_received['bytes'])
+                    with open("temp_received.wav", "rb") as af:
+                        transcription = groq_client.audio.transcriptions.create(
+                            file=("temp_received.wav", af.read()), 
+                            model="whisper-large-v3"
+                        )
+                        voice_received = transcription.text
+                    if os.path.exists("temp_received.wav"):
+                        os.remove("temp_received.wav")
+                    
+                    st.session_state.voice_received_email_text = voice_received
+                    
+                    st.success("✅ Email transcribed!")
+                    st.markdown("**📝 What you said:**")
+                    st.text_area(
+                        "Received email:",
+                        value=voice_received,
+                        height=100,
+                        key="show_received_voice",
+                        disabled=True,
+                        label_visibility="collapsed"
                     )
-                    result = response.choices[0].message.content
-                else:
-                    result = f"Subject: Professional Email\n\nDear Recipient,\n\n{draft}{signature_text}"
+                    st.info("👇 Your voice appears in the text box below.")
+                        
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
+    else:
+        st.info("🎤 Voice requires GROQ_API_KEY in secrets")
 
-                # Save to history
-                timestamp = datetime.datetime.now().strftime("%d/%m %H:%M")
-                st.session_state.history.insert(0, {'email': result, 'timestamp': timestamp})
-                st.session_state.last_generated = result
-                if len(st.session_state.history) > 10:
-                    st.session_state.history = st.session_state.history[:10]
+    st.markdown("<p style='text-align: center; font-size: 16px; font-weight: bold; color: #666; margin: 15px 0;'>OR</p>", unsafe_allow_html=True)
 
-                # Display result
-                st.markdown("### ✅ Your Professional Email")
-                st.markdown(f'<div style="background:#fff; padding:20px; border-radius:12px; border:2px solid #66bb6a;"><div style="color:#1b5e20; font-size:15px; line-height:1.6; white-space: pre-wrap;">{result}</div></div>', unsafe_allow_html=True)
+    # Type Option
+    st.markdown("""
+    <div style='background: linear-gradient(135deg, #D1ECF1 0%, #B6D4FE 100%); 
+         padding: 20px; border-radius: 12px; border: 3px solid #17A2B8; margin: 15px 0;'>
+        <div style='font-size: 18px; font-weight: bold; color: #0C5460; margin-bottom: 8px;'>
+            ✍️ TYPE OPTION - Paste Email Content
+        </div>
+        <div style='font-size: 14px; color: #0C5460; margin-bottom: 10px;'>
+            Type or paste the email you received - AI will generate reply!
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-                # Quick actions
-                st.markdown("### 🔄 Quick Actions")
-                st.caption("Click to modify the email above")
-                action_col1, action_col2, action_col3 = st.columns(3)
+    if voice_received:
+        display_received = voice_received
+    elif st.session_state.voice_received_email_text:
+        display_received = st.session_state.voice_received_email_text
+    else:
+        display_received = ""
 
-                # Store the result in session state for quick actions
-                st.session_state.last_generated = result
+    email_to_reply = st.text_area(
+        "📧 Email content:",
+        value=display_received,
+        height=150,
+        placeholder="Type or paste the email you received...",
+        key="email_content_reply"
+    )
 
-                with action_col1:
-                    if st.button("✂️ Make Shorter", use_container_width=True, key="action_shorter"):
-                        # Create a new prompt to shorten
-                        shorter_prompt = f"Make this email shorter and more concise while keeping the main message:\n\n{result}"
+    # Reply Settings
+    st.markdown("---")
+    st.markdown("### ⚙️ How Should We Reply?")
+    
+    reply_col1, reply_col2 = st.columns(2)
+    with reply_col1:
+        reply_tone = st.selectbox(
+            "🎭 Reply Tone:",
+            ["Professional", "Respectful", "Friendly", "Formal"],
+            key="reply_tone_select",
+            help="How formal should the reply be?"
+        )
+    with reply_col2:
+        reply_type = st.selectbox(
+            "📋 Reply Type:",
+            ["Acknowledge", "Provide Info", "Request Clarification", "Agree/Confirm"],
+            key="reply_type_select",
+            help="What type of response?"
+        )
 
-                        with st.spinner("✂️ Making it shorter..."):
-                            try:
-                                if ai_provider == "gemini":
-                                    response = text_model.generate_content(shorter_prompt)
-                                    shorter_result = response.text
-                                elif ai_provider == "groq":
-                                    response = client.chat.completions.create(
-                                        model="llama-3.3-70b-versatile",
-                                        messages=[{"role": "user", "content": shorter_prompt}],
-                                        temperature=0.7,
-                                        max_tokens=1024
-                                    )
-                                    shorter_result = response.choices[0].message.content
-                                
-                                if 'shorter_result' in locals():
-                                    st.markdown("#### ✂️ Shorter Version:")
-                                    st.markdown(f'<div style="background:#fff3cd; padding:15px; border-radius:10px; border:2px solid #ffc107;"><div style="color:#333; font-size:15px; line-height:1.6; white-space: pre-wrap;">{shorter_result}</div></div>', unsafe_allow_html=True)
-                                    st.code(shorter_result, language=None)
-                            except Exception as e:
-                                st.error(f"Error: {str(e)}")
+    # Generate Reply Button
+    st.markdown("---")
+    if st.button("✨ Generate Professional Reply", use_container_width=True, key="generate_reply_btn"):
+        # Check both text area AND session state for voice
+        actual_email = email_to_reply or st.session_state.voice_received_email_text
+        
+        if not actual_email or not actual_email.strip():
+            st.warning("⚠️ Please provide the email you received (type or record voice)!")
+        else:
+            with st.spinner("🤖 Generating your professional reply..."):
+                try:
+                    reply_prompt = f"""You received this email in {reply_input_lang}:
 
-                with action_col2:
-                    if st.button("📏 Make Longer", use_container_width=True, key="action_longer"):
-                        # Create a new prompt to expand
-                        longer_prompt = f"Make this email more detailed and elaborate while maintaining professionalism:\n\n{result}"
+{actual_email}
 
-                        with st.spinner("📏 Making it longer..."):
-                            try:
-                                if ai_provider == "gemini":
-                                    response = text_model.generate_content(longer_prompt)
-                                    longer_result = response.text
-                                elif ai_provider == "groq":
-                                    response = client.chat.completions.create(
-                                        model="llama-3.3-70b-versatile",
-                                        messages=[{"role": "user", "content": longer_prompt}],
-                                        temperature=0.7,
-                                        max_tokens=1024
-                                    )
-                                    longer_result = response.choices[0].message.content
-                                
-                                if 'longer_result' in locals():
-                                    st.markdown("#### 📏 Longer Version:")
-                                    st.markdown(f'<div style="background:#d1ecf1; padding:15px; border-radius:10px; border:2px solid #17a2b8;"><div style="color:#333; font-size:15px; line-height:1.6; white-space: pre-wrap;">{longer_result}</div></div>', unsafe_allow_html=True)
-                                    st.code(longer_result, language=None)
-                            except Exception as e:
-                                st.error(f"Error: {str(e)}")
+Generate a {reply_tone.lower()} reply in {reply_target_lang} that will {reply_type.lower()}. 
 
-                with action_col3:
-                    if st.button("😊 Friendlier", use_container_width=True, key="action_friendly"):
-                        # Create a new prompt to make friendlier
-                        friendly_prompt = f"Rewrite this email in a more friendly and warm tone while staying professional:\n\n{result}"
+Requirements:
+- Match the sender's formality level
+- Be concise but complete
+- Include proper greeting and closing
+- Professional tone
+- Address all points raised
+- Generate appropriate content based on the email context"""
 
-                        with st.spinner("😊 Making it friendlier..."):
-                            try:
-                                if ai_provider == "gemini":
-                                    response = text_model.generate_content(friendly_prompt)
-                                    friendly_result = response.text
-                                elif ai_provider == "groq":
-                                    response = client.chat.completions.create(
-                                        model="llama-3.3-70b-versatile",
-                                        messages=[{"role": "user", "content": friendly_prompt}],
-                                        temperature=0.7,
-                                        max_tokens=1024
-                                    )
-                                    friendly_result = response.choices[0].message.content
-                                
-                                if 'friendly_result' in locals():
-                                    st.markdown("#### 😊 Friendlier Version:")
-                                    st.markdown(f'<div style="background:#d4edda; padding:15px; border-radius:10px; border:2px solid #28a745;"><div style="color:#333; font-size:15px; line-height:1.6; white-space: pre-wrap;">{friendly_result}</div></div>', unsafe_allow_html=True)
-                                    st.code(friendly_result, language=None)
-                            except Exception as e:
-                                st.error(f"Error: {str(e)}")
+                    # Generate reply using AI
+                    if ai_provider == "gemini":
+                        response = text_model.generate_content(reply_prompt)
+                        reply_result = response.text
+                    elif ai_provider == "groq":
+                        response = client.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=[{"role": "user", "content": reply_prompt}],
+                            temperature=0.7,
+                            max_tokens=1024
+                        )
+                        reply_result = response.choices[0].message.content
 
-                # Copy section
-                st.markdown("### 📋 Copy Email")
-                st.code(result, language=None)
-                st.info("👆 Tap and hold to copy")
+                    # Display result
+                    st.markdown("### ✅ Your Professional Reply")
+                    
+                    # Track reply generation
+                    st.markdown("""<script>
+                    if (typeof gtag !== 'undefined') {
+                        gtag('event', 'reply_generated', {
+                            'event_category': 'engagement',
+                            'event_label': 'reply_to_email',
+                            'value': 1
+                        });
+                    }
+                    </script>""", unsafe_allow_html=True)
+                    
+                    st.markdown(f'<div style="background:#e8f5e9; padding:20px; border-radius:12px; border:2px solid #4caf50;"><div style="color:#1b5e20; font-size:15px; line-height:1.6; white-space: pre-wrap;">{reply_result}</div></div>', unsafe_allow_html=True)
 
-                # Share buttons
-                st.markdown("### 📤 Share")
-                share_col1, share_col2 = st.columns(2)
+                    # Copy section
+                    st.markdown("### 📋 Copy Reply")
+                    st.code(reply_result, language=None)
+                    st.info("👆 Tap and hold to copy, then paste in your email client")
 
-                with share_col1:
-                    whatsapp_text = urllib.parse.quote(result)
-                    st.markdown(f'<a href="https://wa.me/?text={whatsapp_text}" target="_blank" style="text-decoration:none; display:block;"><div style="background:#25D366; color:white; padding:14px; border-radius:10px; text-align:center; font-weight:bold; font-size:15px;">📱 WhatsApp</div></a>', unsafe_allow_html=True)
+                    # Share buttons
+                    st.markdown("### 📤 Share Reply")
+                    share_col1, share_col2 = st.columns(2)
 
-                with share_col2:
-                    email_subject = urllib.parse.quote("Email from ProMailer AI")
-                    email_body = urllib.parse.quote(result)
-                    st.markdown(f'<a href="mailto:?subject={email_subject}&body={email_body}" style="text-decoration:none; display:block;"><div style="background:#EA4335; color:white; padding:14px; border-radius:10px; text-align:center; font-weight:bold; font-size:15px;">📧 Email</div></a>', unsafe_allow_html=True)
-                
-                st.info("💡 **Tip:** Email button works best on mobile. If it doesn't open on desktop, use the copy section above to paste into your email client.")
+                    with share_col1:
+                        whatsapp_text = urllib.parse.quote(reply_result)
+                        st.markdown(f'<a href="https://wa.me/?text={whatsapp_text}" target="_blank" style="text-decoration:none; display:block;"><div style="background:#25D366; color:white; padding:14px; border-radius:10px; text-align:center; font-weight:bold; font-size:15px;">📱 WhatsApp</div></a>', unsafe_allow_html=True)
 
-                st.balloons()
+                    with share_col2:
+                        email_subject = urllib.parse.quote("Reply from ProMailer AI")
+                        email_body = urllib.parse.quote(reply_result)
+                        st.markdown(f'<a href="mailto:?subject={email_subject}&body={email_body}" style="text-decoration:none; display:block;"><div style="background:#EA4335; color:white; padding:14px; border-radius:10px; text-align:center; font-weight:bold; font-size:15px;">📧 Email</div></a>', unsafe_allow_html=True)
+                    
+                    st.info("💡 **Tip:** Email button works best on mobile. On desktop, use the copy section above.")
 
-            except Exception as e:
-                st.error(f"❌ Error: {str(e)}")
+                    st.balloons()
+
+                except Exception as e:
+                    st.error(f"❌ Error generating reply: {str(e)}")
+                    st.info("Please try again or contact support if the issue persists.")
 
 # Footer
 st.markdown("---")
-ai_names = {"gemini": "🤖 Google Gemini AI", "groq": "🚀 Groq AI", "huggingface": "🤗 Hugging Face"}
+ai_names = {"gemini": "🤖 Google Gemini AI", "groq": "🚀 Groq AI"}
 if 'ai_provider' in locals():
     st.markdown(f'<div style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: 10px; border-radius: 8px; text-align: center; border: 2px solid #66bb6a; margin-bottom: 10px;"><div style="font-weight: bold; color: #1b5e20; font-size: 13px;">Powered by: {ai_names.get(ai_provider, ai_provider)}</div></div>', unsafe_allow_html=True)
 
-st.markdown("<div style='text-align: center; color: #666; padding: 15px; font-size: 13px;'>ProMailer AI Enhanced - Built with 💚 by Bhushan</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; color: #666; padding: 15px; font-size: 13px;'>ProMailer AI v2.4.0 - Built with 💚 by Bhushan</div>", unsafe_allow_html=True)
