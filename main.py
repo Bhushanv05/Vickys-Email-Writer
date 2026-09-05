@@ -4,6 +4,11 @@ import urllib.parse
 import datetime
 from streamlit_mic_recorder import mic_recorder
 
+# Groq text model - configurable via env var so future model deprecations
+# don't require another code change. llama-3.3-70b-versatile was
+# decommissioned by Groq on Aug 16, 2026.
+GROQ_TEXT_MODEL = os.getenv("GROQ_TEXT_MODEL", "openai/gpt-oss-120b")
+
 # Page config
 st.set_page_config(
     page_title="ProMailer AI - Enhanced", 
@@ -348,7 +353,7 @@ Notes: {actual_draft}"""
                         result = response.text
                     elif ai_provider == "groq":
                         response = client.chat.completions.create(
-                            model="llama-3.3-70b-versatile",
+                            model=GROQ_TEXT_MODEL,
                             messages=[{"role": "user", "content": prompt}],
                             temperature=0.7,
                             max_tokens=1024
@@ -386,7 +391,7 @@ Notes: {actual_draft}"""
                                         shorter_result = response.text
                                     elif ai_provider == "groq":
                                         response = client.chat.completions.create(
-                                            model="llama-3.3-70b-versatile",
+                                            model=GROQ_TEXT_MODEL,
                                             messages=[{"role": "user", "content": shorter_prompt}],
                                             temperature=0.7,
                                             max_tokens=1024
@@ -410,7 +415,7 @@ Notes: {actual_draft}"""
                                         longer_result = response.text
                                     elif ai_provider == "groq":
                                         response = client.chat.completions.create(
-                                            model="llama-3.3-70b-versatile",
+                                            model=GROQ_TEXT_MODEL,
                                             messages=[{"role": "user", "content": longer_prompt}],
                                             temperature=0.7,
                                             max_tokens=1024
@@ -434,7 +439,7 @@ Notes: {actual_draft}"""
                                         friendly_result = response.text
                                     elif ai_provider == "groq":
                                         response = client.chat.completions.create(
-                                            model="llama-3.3-70b-versatile",
+                                            model=GROQ_TEXT_MODEL,
                                             messages=[{"role": "user", "content": friendly_prompt}],
                                             temperature=0.7,
                                             max_tokens=1024
@@ -632,7 +637,7 @@ Requirements:
                         reply_result = response.text
                     elif ai_provider == "groq":
                         response = client.chat.completions.create(
-                            model="llama-3.3-70b-versatile",
+                            model=GROQ_TEXT_MODEL,
                             messages=[{"role": "user", "content": reply_prompt}],
                             temperature=0.7,
                             max_tokens=1024
